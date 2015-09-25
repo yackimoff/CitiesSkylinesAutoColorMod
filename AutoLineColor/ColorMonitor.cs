@@ -13,7 +13,7 @@ namespace AutoLineColor
 {
     public class ColorMonitor : ThreadingExtensionBase
     {
-        private static DateTimeOffset _lastOutputTime = DateTimeOffset.Now;
+        private static DateTimeOffset _nextUpdateTime = DateTimeOffset.Now;
         private bool _initialized;
         private IColorStrategy _colorStrategy;
         private INamingStrategy _namingStrategy;
@@ -23,13 +23,14 @@ namespace AutoLineColor
 
         public override void OnCreated(IThreading threading)
         {
-            logger.Message("loading auto color monitor");
-            logger.Message("initializing colors");
+            logger.Message("===============================");
+            logger.Message("Initializing auto color monitor");
+            logger.Message("Initializing colors");
             RandomColor.Initialize();
             CategorisedColor.Initialize();
             GenericNames.Initialize();
 
-            logger.Message("loading current config");
+            logger.Message("Loading current config");
             _config = Configuration.Instance;
             _colorStrategy = SetColorStrategy(_config.ColorStrategy);
             _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
@@ -79,11 +80,7 @@ namespace AutoLineColor
         }
 
         public override void OnUpdate(float realTimeDelta, float simulationTimeDelta)
-        {
-            var theTransportManager = Singleton<TransportManager>.instance;
-            var lines = theTransportManager.m_lines.m_buffer;
-
-            //Digest changes
+        {   //Digest changes
             if (_config.UndigestedChanges == true) {
                 logger.Message("Applying undigested changes");
                 _colorStrategy = SetColorStrategy(_config.ColorStrategy);
@@ -91,63 +88,63 @@ namespace AutoLineColor
                 _config.UndigestedChanges = false;
             }
 
+            if (_initialized == false)
+                return;
+
+            // try and limit how often we are scanning for lines. this ain't that important
+            if (_nextUpdateTime >= DateTimeOffset.Now)
+                return;
+
+            var theTransportManager = Singleton<TransportManager>.instance;
+            var lines = theTransportManager.m_lines.m_buffer;
+
             try
             {
-                if (_initialized == false)
-                    return;
-
-
-                // try and limit how often we are scanning for lines. this ain't that important
-                if (_lastOutputTime.AddMilliseconds(1000) >= DateTimeOffset.Now)
-                    return;
-
-
-
-                _lastOutputTime = DateTimeOffset.Now;
+                _nextUpdateTime = DateTimeOffset.Now.AddSeconds(5);
 
                 while (!Monitor.TryEnter(lines, SimulationManager.SYNCHRONIZE_TIMEOUT)) { }
 
-                
                 _usedColors = lines.Where(l => l.IsActive()).Select(l => l.m_color).ToList();
 
-                for (ushort counter = 0; counter < lines.Length - 1; counter++)
+                for (ushort i = 0; i < theTransportManager.m_lineCount - 1; i++)
                 {
-                    var transportLine = lines[counter];
+                    var transportLine = lines[i];
+                    logger.Message(string.Format("Working on line {0}", i));
 
                     if (transportLine.m_flags == TransportLine.Flags.None)
                         continue;
 
+                    if (!transportLine.Complete)
+                        continue;
 
                     // only worry about fully created lines 
                     if (!transportLine.IsActive() || transportLine.HasCustomName() || !transportLine.m_color.IsDefaultColor())
                         continue;
 
-                    logger.Message("work to be done!");
-
-                    var lineName = _namingStrategy.GetName(transportLine);
-                    var color = _colorStrategy.GetColor(transportLine, _usedColors);
+                    var instanceID = new InstanceID { TransportLine = i };
+                    var lineStingleton = Singleton<InstanceManager>.instance;
+                    var lineName = lineStingleton.GetName(instanceID);
 
                     if (!transportLine.HasCustomColor() || transportLine.m_color.IsDefaultColor())
                     {
-                        // set the color
-                        transportLine.m_color = color;
-                        transportLine.m_flags |= TransportLine.Flags.CustomColor;
+                        var color = _colorStrategy.GetColor(transportLine, _usedColors);
+                        
+                        logger.Message(string.Format("About to change line color"));
+                        transportLine.ChangeColor(color);
                         logger.Message(string.Format("Changed line color. '{0}' {1} -> {2}", lineName, transportLine.m_color, color));
                     }
 
-                    if (string.IsNullOrEmpty(lineName) == false && transportLine.HasCustomName() == false)
+                    if (string.IsNullOrEmpty(lineName) == false && 
+                        transportLine.HasCustomName() == false)
                     {
-                        logger.Message("New line name time!");
-                        // set the name
-                        var line = Singleton<InstanceManager>.instance;
-                        var instanceID = new InstanceID { TransportLine = counter };
-                        logger.Message(string.Format("Renamed Line '{0}' -> '{1}'", line.GetName(instanceID), lineName));
+                        var newName = _namingStrategy.GetName(transportLine);
 
-                        line.SetName(instanceID, lineName);
-                        transportLine.m_flags |= TransportLine.Flags.CustomName;
+                        logger.Message(string.Format("About to rename line"));
+                        transportLine.Rename(lineStingleton, instanceID, newName);
+                        logger.Message(string.Format("Renamed Line '{0}' -> '{1}'", lineName, newName));
                     }
 
-                    lines[counter] = transportLine;
+                    lines[i] = transportLine;
                 }
             }
             catch (Exception ex)
@@ -184,7 +181,7 @@ namespace AutoLineColor
 
         public static bool IsActive(this TransportLine transportLine)
         {
-            if ((transportLine.m_flags & (TransportLine.Flags.Complete | TransportLine.Flags.Created | TransportLine.Flags.Hidden)) == 0)
+            if ((transportLine.m_flags & (TransportLine.Flags.Created | TransportLine.Flags.Hidden)) == 0)
                 return false;
 
             // stations are marked with this flag
@@ -192,6 +189,17 @@ namespace AutoLineColor
                 return false;
 
             return true;
+        }
+
+        public static void ChangeColor(this TransportLine transportLine, Color32 color) {
+            transportLine.m_color = color;
+            transportLine.m_flags |= TransportLine.Flags.CustomColor;
+        }
+
+        public static void Rename(this TransportLine transportLine, InstanceManager singleton, InstanceID id, string newName) {
+            // set the name
+            singleton.SetName(id, newName);
+            transportLine.m_flags |= TransportLine.Flags.CustomName;
         }
 
         public static bool HasCustomColor(this TransportLine transportLine)
