@@ -100,16 +100,13 @@ namespace AutoLineColor
 
             try
             {
-                _nextUpdateTime = DateTimeOffset.Now.AddSeconds(5);
-
-                while (!Monitor.TryEnter(lines, SimulationManager.SYNCHRONIZE_TIMEOUT)) { }
-
+                _nextUpdateTime = DateTimeOffset.Now.AddSeconds(10);
                 _usedColors = lines.Where(l => l.IsActive()).Select(l => l.m_color).ToList();
 
-                for (ushort i = 0; i < theTransportManager.m_lineCount - 1; i++)
+                for (ushort i = 0; i < theTransportManager.m_lines.m_buffer.Length - 1; i++)
                 {
                     var transportLine = lines[i];
-                    logger.Message(string.Format("Working on line {0}", i));
+                    //logger.Message(string.Format("Starting on line {0}", i));
 
                     if (transportLine.m_flags == TransportLine.Flags.None)
                         continue;
@@ -121,28 +118,37 @@ namespace AutoLineColor
                     if (!transportLine.IsActive() || transportLine.HasCustomName() || !transportLine.m_color.IsDefaultColor())
                         continue;
 
-                    var instanceID = new InstanceID { TransportLine = i };
-                    var lineStingleton = Singleton<InstanceManager>.instance;
-                    var lineName = lineStingleton.GetName(instanceID);
+                    logger.Message(string.Format("Working on line {0}", i));
+
+                    var instanceID = new InstanceID();
+                    var lineName = theTransportManager.GetLineName(i);
+                    var newName = _namingStrategy.GetName(transportLine);
 
                     if (!transportLine.HasCustomColor() || transportLine.m_color.IsDefaultColor())
                     {
                         var color = _colorStrategy.GetColor(transportLine, _usedColors);
                         
-                        logger.Message(string.Format("About to change line color"));
-                        transportLine.ChangeColor(color);
-                        logger.Message(string.Format("Changed line color. '{0}' {1} -> {2}", lineName, transportLine.m_color, color));
+                        logger.Message(string.Format("About to change line color to {0}", color));
+                        transportLine.m_color = color;
+                        transportLine.m_flags |= TransportLine.Flags.CustomColor;
+                        theTransportManager.SetLineColor(i, color);
+
+                        logger.Message(string.Format("Changed line color. '{0}' {1} -> {2}", lineName, theTransportManager.GetLineColor(i), color));
                     }
 
-                    if (string.IsNullOrEmpty(lineName) == false && 
-                        transportLine.HasCustomName() == false)
-                    {
-                        var newName = _namingStrategy.GetName(transportLine);
+                    if (string.IsNullOrEmpty(newName) == false &&
+                        transportLine.HasCustomName() == false) {
+                        logger.Message(string.Format("About to rename line to {0}", newName));
+                        
+                        transportLine.m_flags |= TransportLine.Flags.CustomName;
+                        theTransportManager.SetLineName(i, newName);
 
-                        logger.Message(string.Format("About to rename line"));
-                        transportLine.Rename(lineStingleton, instanceID, newName);
                         logger.Message(string.Format("Renamed Line '{0}' -> '{1}'", lineName, newName));
                     }
+
+                    logger.Message(string.Format("Line is now {0} and {1}", 
+                        theTransportManager.GetLineName(i),
+                        theTransportManager.GetLineColor(i)));
 
                     lines[i] = transportLine;
                 }
@@ -189,17 +195,6 @@ namespace AutoLineColor
                 return false;
 
             return true;
-        }
-
-        public static void ChangeColor(this TransportLine transportLine, Color32 color) {
-            transportLine.m_color = color;
-            transportLine.m_flags |= TransportLine.Flags.CustomColor;
-        }
-
-        public static void Rename(this TransportLine transportLine, InstanceManager singleton, InstanceID id, string newName) {
-            // set the name
-            singleton.SetName(id, newName);
-            transportLine.m_flags |= TransportLine.Flags.CustomName;
         }
 
         public static bool HasCustomColor(this TransportLine transportLine)
