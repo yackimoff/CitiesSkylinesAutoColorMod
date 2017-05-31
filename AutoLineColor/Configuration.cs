@@ -12,6 +12,8 @@ namespace AutoLineColor
         public NamingStrategy NamingStrategy { get; set; }
         public int? MinColorDiffPercentage { get; set; }
         public int? MaxDiffColorPickAttempt { get; set; }
+
+        [NonSerialized]
         public volatile bool UndigestedChanges;
 
         //Staged changes. These are not applied until 'Save' is clicked
@@ -54,10 +56,10 @@ namespace AutoLineColor
                         !config.MinColorDiffPercentage.HasValue) {
 
                         config.UndigestedChanges = false;
-                        config.MaxDiffColorPickAttempt = config.MaxDiffColorPickAttempt.HasValue ?
-                        config.MaxDiffColorPickAttempt : DefaultMaxDiffColorPickAttempt;
-                        config.MinColorDiffPercentage = config.MinColorDiffPercentage.HasValue ?
-                            config.MinColorDiffPercentage : DefaultMinColorDiffPercent;
+                        config.MaxDiffColorPickAttempt = config.MaxDiffColorPickAttempt ??
+                            DefaultMaxDiffColorPickAttempt;
+                        config.MinColorDiffPercentage = config.MinColorDiffPercentage ??
+                            DefaultMinColorDiffPercent;
 
                         isDirty = true;
                     }
@@ -113,20 +115,10 @@ namespace AutoLineColor
             logger.Message("Saving changes to config file");
 
             //If any changes have occured, apply them, otherwise keep the current value
-            this.ColorStrategy = this.StagedColorStrategy.HasValue
-                ? this.StagedColorStrategy.Value
-                : this.ColorStrategy;
-            this.NamingStrategy = this.StagedNamingStrategy.HasValue
-                ? this.StagedNamingStrategy.Value
-                : this.NamingStrategy;
-            this.MaxDiffColorPickAttempt =
-                this.StagedMaxDiffColorPickAttempt.HasValue
-                    ? this.StagedMaxDiffColorPickAttempt.Value
-                    : this.MaxDiffColorPickAttempt;
-            this.MinColorDiffPercentage =
-                this.StagedMinColorDiffPercentage.HasValue
-                    ? this.StagedMinColorDiffPercentage.Value
-                    : this.MinColorDiffPercentage;
+            this.ColorStrategy = this.StagedColorStrategy ?? this.ColorStrategy;
+            this.NamingStrategy = this.StagedNamingStrategy ?? this.NamingStrategy;
+            this.MaxDiffColorPickAttempt = this.StagedMaxDiffColorPickAttempt ?? this.MaxDiffColorPickAttempt;
+            this.MinColorDiffPercentage = this.StagedMinColorDiffPercentage ?? this.MinColorDiffPercentage;
 
             //clear changes and log
             if (this.StagedColorStrategy.HasValue)
