@@ -58,7 +58,7 @@ namespace AutoLineColor
             string formatted;
             try
             {
-                formatted = string.Format("{0}({1}) {2}", "[AutoLineColor]", Type.ToString(), msg);
+                formatted = string.Format("[AutoLineColor] {0:yyyy-MM-dd hh:mm:ss} ({1}) {2}", DateTime.Now, Type.ToString(), msg);
             }
             catch (Exception e)
             {
