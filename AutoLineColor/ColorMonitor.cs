@@ -79,6 +79,7 @@ namespace AutoLineColor
             }
         }
 
+        // TODO: make this whole thing a coroutine?
         public override void OnUpdate(float realTimeDelta, float simulationTimeDelta)
         {   //Digest changes
             if (_config.UndigestedChanges == true) {
@@ -95,15 +96,27 @@ namespace AutoLineColor
             if (_nextUpdateTime >= DateTimeOffset.Now)
                 return;
 
+            if (!Singleton<TransportManager>.exists || !Singleton<SimulationManager>.exists)
+                return;
+
             var theTransportManager = Singleton<TransportManager>.instance;
+            var theSimulationManager = Singleton<SimulationManager>.instance;
             var lines = theTransportManager.m_lines.m_buffer;
+
+            bool locked = false;
 
             try
             {
-                _nextUpdateTime = DateTimeOffset.Now.AddSeconds(10);
+                _nextUpdateTime = DateTimeOffset.Now.AddSeconds(Constants.UpdateIntervalSeconds);
+
+                locked = Monitor.TryEnter(lines, SimulationManager.SYNCHRONIZE_TIMEOUT);
+
+                if (!locked)
+                    return;
+
                 _usedColors = lines.Where(l => l.IsActive()).Select(l => l.m_color).ToList();
 
-                for (ushort i = 0; i < theTransportManager.m_lines.m_buffer.Length - 1; i++)
+                for (ushort i = 0; i < lines.Length - 1; i++)
                 {
                     var transportLine = lines[i];
                     //logger.Message(string.Format("Starting on line {0}", i));
@@ -120,7 +133,6 @@ namespace AutoLineColor
 
                     logger.Message(string.Format("Working on line {0}", i));
 
-                    var instanceID = new InstanceID();
                     var lineName = theTransportManager.GetLineName(i);
                     var newName = _namingStrategy.GetName(transportLine);
 
@@ -128,29 +140,18 @@ namespace AutoLineColor
                     {
                         var color = _colorStrategy.GetColor(transportLine, _usedColors);
                         
-                        logger.Message(string.Format("About to change line color to {0}", color));
-                        transportLine.m_color = color;
-                        transportLine.m_flags |= TransportLine.Flags.CustomColor;
-                        theTransportManager.SetLineColor(i, color);
+                        logger.Message(string.Format("Changing line {0} color from {1} to {2}", i, theTransportManager.GetLineColor(i), color));
 
-                        logger.Message(string.Format("Changed line color. '{0}' {1} -> {2}", lineName, theTransportManager.GetLineColor(i), color));
+                        theSimulationManager.AddAction(theTransportManager.SetLineColor(i, color));
                     }
 
                     if (string.IsNullOrEmpty(newName) == false &&
-                        transportLine.HasCustomName() == false) {
-                        logger.Message(string.Format("About to rename line to {0}", newName));
-                        
-                        transportLine.m_flags |= TransportLine.Flags.CustomName;
-                        theTransportManager.SetLineName(i, newName);
+                        transportLine.HasCustomName() == false)
+                    {
+                        logger.Message(string.Format("Changing line {0} name from '{1}' to '{2}'", i, lineName, newName));
 
-                        logger.Message(string.Format("Renamed Line '{0}' -> '{1}'", lineName, newName));
+                        theSimulationManager.AddAction(theTransportManager.SetLineName(i, newName));
                     }
-
-                    logger.Message(string.Format("Line is now {0} and {1}", 
-                        theTransportManager.GetLineName(i),
-                        theTransportManager.GetLineColor(i)));
-
-                    lines[i] = transportLine;
                 }
             }
             catch (Exception ex)
@@ -159,9 +160,11 @@ namespace AutoLineColor
             }
             finally
             {
-                Monitor.Exit(Monitor.TryEnter(lines));
+                if (locked)
+                {
+                    Monitor.Exit(lines);
+                }
             }
-
         }
     }
 

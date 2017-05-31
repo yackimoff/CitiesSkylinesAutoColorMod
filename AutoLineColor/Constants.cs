@@ -7,6 +7,7 @@ namespace AutoLineColor {
         public const string ModName = "Auto Line Color";
         public const string Description = 
                     "Monitors all transport line looking for lines set to the default color." +
-                    " When found it sets a new color and a line name";
+                    " When found it sets a new color and a line name.";
+        public const double UpdateIntervalSeconds = 10.0;
     }
 }
