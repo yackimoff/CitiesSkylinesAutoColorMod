@@ -24,13 +24,12 @@ namespace AutoLineColor
             try
             {
                 log = new StreamWriter(new FileStream(Constants.LogFileName, FileMode.Append | FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
+                log_opened = true;
             }
-            catch (Exception e)
+            catch
             {
                 WriteMessage("Could not open log file", PluginManager.MessageType.Warning);
             }
-
-            log_opened = true;
         }
 
         public static Console Instance

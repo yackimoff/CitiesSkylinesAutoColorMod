@@ -9,5 +9,7 @@ namespace AutoLineColor {
                     "Monitors all transport line looking for lines set to the default color." +
                     " When found it sets a new color and a line name.";
         public const double UpdateIntervalSeconds = 10.0;
+
+        public const int MaxLineAnalysisStops = 50;
     }
 }
