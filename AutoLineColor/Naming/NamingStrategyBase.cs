@@ -11,6 +11,11 @@ namespace AutoLineColor.Naming
         public int StopCount;
         public List<string> Districts;
         public bool HasNonDistrictStop;
+
+        /// <summary>
+        /// May be null if pathfinding wasn't successful at analysis time.
+        /// </summary>
+        public Dictionary<string, float> DistanceOnSegments;
     }
 
     abstract class NamingStrategyBase : INamingStrategy
@@ -116,17 +121,23 @@ namespace AutoLineColor.Naming
             var theDistrictManager = Singleton<DistrictManager>.instance;
             var stop = transportLine.m_stops;
             var firstStop = stop;
+            var collectSegments = true;
 
             var result = new LineAnalysis
             {
                 Districts = new List<string>(),
                 HasNonDistrictStop = false,
                 StopCount = 0,
+                DistanceOnSegments = new Dictionary<string, float>(),
             };
+
+            var segments = new List<ushort>();
 
             do
             {
                 var stopInfo = theNetManager.m_nodes.m_buffer[stop];
+
+                // record the name of the district containing the stop
                 var district = theDistrictManager.GetDistrict(stopInfo.m_position);
 
                 if (district == 0)
@@ -142,11 +153,96 @@ namespace AutoLineColor.Naming
                     }
                 }
 
-                stop = TransportLine.GetNextStop(stop);
+                var nextStop = TransportLine.GetNextStop(stop);
+
+                if (collectSegments)
+                {
+                    // record the segment names and distances from this stop to the next
+                    segments.Clear();
+                    if (GetSegmentsBetweenStops(stop, nextStop, segments))
+                    {
+                        foreach (var segment in segments)
+                        {
+                            var name = theNetManager.GetSegmentName(segment).Trim();
+
+                            if (string.IsNullOrEmpty(name))
+                                continue;
+
+                            var length = theNetManager.m_segments.m_buffer[segment].m_averageLength;
+
+                            float curLength;
+                            if (result.DistanceOnSegments.TryGetValue(name, out curLength))
+                            {
+                                result.DistanceOnSegments[name] = curLength + length;
+                            }
+                            else
+                            {
+                                result.DistanceOnSegments[name] = length;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        collectSegments = false;
+                    }
+                }
+
+                stop = nextStop;
                 result.StopCount++;
             } while (result.StopCount < Constants.MaxLineAnalysisStops && stop != firstStop);
 
+            if (!collectSegments)
+                result.DistanceOnSegments = null;
+
             return result;
+        }
+
+        private static bool GetSegmentsBetweenStops(ushort stop1, ushort stop2, List<ushort> segments)
+        {
+            var theTransportManager = Singleton<TransportManager>.instance;
+            var theNetManager = Singleton<NetManager>.instance;
+
+            theTransportManager.UpdateLinesNow();
+
+            while (stop1 != stop2)
+            {
+                // these are the transport-network segments that make up the logical line
+                var transportSegment = TransportLine.GetNextSegment(stop1);
+
+                if (transportSegment == 0)
+                    return false;
+
+                var path = theNetManager.m_segments.m_buffer[transportSegment].m_path;
+
+                if (path == 0)
+                    return false;
+
+                // these are the road/track segments that make up the physical line
+                segments.AddRange(GetPathPositions(path).Select(pp => pp.m_segment));
+
+                stop1 = TransportLine.GetNextStop(stop1);
+            }
+
+            return true;
+        }
+
+        private static IEnumerable<PathUnit.Position> GetPathPositions(uint pathUnit)
+        {
+            var thePathManager = Singleton<PathManager>.instance;
+
+            var unit = thePathManager.m_pathUnits.m_buffer[pathUnit];
+            PathUnit.Position position;
+
+            if (!unit.GetPosition(0, out position))
+                yield break;
+
+            int posIndex = 0;
+            bool invalid;
+
+            do
+            {
+                yield return position;
+            } while (PathUnit.GetNextPosition(ref pathUnit, ref posIndex, out position, out invalid));
         }
 
         protected static List<string> GetExistingNames()

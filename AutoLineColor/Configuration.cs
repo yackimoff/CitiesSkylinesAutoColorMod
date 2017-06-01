@@ -194,6 +194,7 @@ namespace AutoLineColor
     {
         None,
         Districts,
-        London
+        London,
+        Roads
     }
 }

@@ -64,6 +64,7 @@
     <Compile Include="Naming\INamingStrategy.cs" />
     <Compile Include="Naming\NamingStrategyBase.cs" />
     <Compile Include="Naming\NoNamingStrategy.cs" />
+    <Compile Include="Naming\RoadNamingStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Coloring\RandomColorStrategy.cs" />
     <Compile Include="Coloring\RandomHueStrategy.cs" />

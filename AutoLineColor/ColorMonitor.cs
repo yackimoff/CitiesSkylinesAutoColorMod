@@ -56,6 +56,8 @@ namespace AutoLineColor
                     return new DistrictNamingStrategy();
                 case NamingStrategy.London:
                     return new LondonNamingStrategy();
+                case NamingStrategy.Roads:
+                    return new RoadNamingStrategy();
                 default:
                     logger.Error("unknown naming strategy");
                     return new NoNamingStrategy();
