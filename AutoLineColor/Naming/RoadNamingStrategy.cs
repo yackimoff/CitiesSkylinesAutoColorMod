@@ -26,6 +26,7 @@ namespace AutoLineColor.Naming
         protected override string GetGenericLineName(TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
+            var lineNum = transportLine.m_lineNumber;
 
             if (analysis.DistanceOnSegments != null)
             {
@@ -34,6 +35,13 @@ namespace AutoLineColor.Naming
                 logger.Message(string.Format(
                     "Line traverses {0} segment names...",
                     analysis.DistanceOnSegments.Count));
+
+                string districtBasedName = null, roadBasedName = null;
+
+                if (analysis.Districts.Count > 0)
+                {
+                    districtBasedName = string.Join("/", analysis.Districts.ToArray());
+                }
 
                 if (analysis.DistanceOnSegments.Count > 0)
                 {
@@ -45,12 +53,45 @@ namespace AutoLineColor.Naming
                             pair.Value));
                     }
 
-                    var longestTraveledName = analysis.DistanceOnSegments
-                        .Aggregate((max, p) => p.Value > max.Value ? p : max)
-                        .Key;
+                    // sort all segment names by descending distance traveled, and add up the cumulative distance
+                    var sorted = analysis.DistanceOnSegments
+                        .OrderByDescending(p => p.Value)
+                        .Scan(0f, (cd, p) => cd + p.Value,
+                            (p, cd) => new { name = p.Key, distance = p.Value, cumulativeDistance = cd })
+                        .ToArray();
 
-                    return string.Format("#{0} {1} Line", transportLine.m_lineNumber, longestTraveledName);
+                    // find the minimum set of roads that make up more than half the total distance
+                    var totalDistance = analysis.DistanceOnSegments.Sum(p => p.Value);
+
+                    logger.Message("totalDistance=" + totalDistance);
+                    logger.Message("with cumulative:");
+                    foreach (var r in sorted)
+                    {
+                        logger.Message(string.Format("'{0}', d={1}, cd={2}", r.name, r.distance, r.cumulativeDistance));
+                    }
+
+                    var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
+                    var majority = sorted.Take(majoritySize);
+
+                    roadBasedName = string.Join("/", majority.Select(r => StripRoadSuffix(r.name)).ToArray());
                 }
+
+                if (string.IsNullOrEmpty(districtBasedName) && string.IsNullOrEmpty(roadBasedName))
+                {
+                    return null;
+                }
+
+                if (string.IsNullOrEmpty(districtBasedName))
+                {
+                    return string.Format("#{0} {1} Line", lineNum, roadBasedName);
+                }
+
+                if (string.IsNullOrEmpty(roadBasedName))
+                {
+                    return string.Format("#{0} {1}", lineNum, districtBasedName);
+                }
+
+                return string.Format("#{0} {1} via {2}", lineNum, districtBasedName, roadBasedName);
             }
 
             return null;

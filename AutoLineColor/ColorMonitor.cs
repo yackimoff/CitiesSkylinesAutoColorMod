@@ -212,4 +212,22 @@ namespace AutoLineColor
             return (transportLine.m_flags & TransportLine.Flags.CustomName) == TransportLine.Flags.CustomName;
         }
     }
+
+    internal static class IEnumerableExtensions
+    {
+        public static IEnumerable<TResult> Scan<TSource, TAccumulate, TResult>(
+            this IEnumerable<TSource> source,
+            TAccumulate seed,
+            Func<TAccumulate, TSource, TAccumulate> updater,
+            Func<TSource, TAccumulate, TResult> resultSelector)
+        {
+            var accumulator = seed;
+
+            foreach (var item in source)
+            {
+                accumulator = updater(accumulator, item);
+                yield return resultSelector(item, accumulator);
+            }
+        }
+    }
 }

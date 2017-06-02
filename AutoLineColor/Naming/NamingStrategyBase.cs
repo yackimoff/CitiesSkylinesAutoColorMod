@@ -283,5 +283,11 @@ namespace AutoLineColor.Naming
             var pos = words.IndexOf(' ');
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
+
+        protected static string StripRoadSuffix(string name)
+        {
+            var pos = name.LastIndexOf(' ');
+            return pos >= 0 ? name.Substring(0, pos) : name;
+        }
     }
 }
