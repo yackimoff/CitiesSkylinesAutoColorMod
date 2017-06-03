@@ -284,10 +284,138 @@ namespace AutoLineColor.Naming
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
 
+        protected static string LastWord(string words)
+        {
+            var pos = words.LastIndexOf(' ');
+            return pos >= 0 ? words.Substring(pos + 1) : words;
+        }
+
+        protected static string AllButLastWord(string words)
+        {
+            var pos = words.LastIndexOf(' ');
+            return pos >= 0 ? words.Substring(0, pos) : words;
+        }
+
+        protected static string StripDistrictSuffix(string name)
+        {
+            return AllButLastWord(name);
+        }
+
         protected static string StripRoadSuffix(string name)
         {
-            var pos = name.LastIndexOf(' ');
-            return pos >= 0 ? name.Substring(0, pos) : name;
+            return AllButLastWord(name);
+        }
+
+        protected static string AbbreviateDistrictSuffix(string name)
+        {
+            // TODO: make localizable
+
+            if (name.IndexOf(' ') < 0)
+                return name;
+
+            var suffix = LastWord(name);
+
+            switch (suffix)
+            {
+                case "District":
+                    suffix = "Dst";
+                    break;
+
+                case "Heights":
+                    suffix = "Hts";
+                    break;
+
+                case "Hills":
+                    suffix = "Hls";
+                    break;
+
+                case "Park":
+                    suffix = "Pk";
+                    break;
+
+                case "Square":
+                    suffix = "Sq";
+                    break;
+
+                default:
+                    suffix = AutoShortenWord(suffix).Substring(0, 3);
+                    break;
+            }
+
+            return AllButLastWord(name) + " " + suffix;
+        }
+
+        // TODO: make localizable
+        /* Loosely based on the US Postal Service street suffix abbreviations:
+         * https://pe.usps.com/text/pub28/28apc_002.htm */
+        private static readonly Dictionary<string, string> RoadSuffixAbbreviations =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Alley", "Aly" },
+            { "Avenue", "Ave" },
+            { "Boulevard", "Blvd" },
+            { "Bridge", "Br" },
+            { "Circle", "Cir" },
+            { "Court", "Ct" },
+            { "Crossing", "Xing" },
+            { "Drive", "Dr" },
+            { "Expressway", "Expy" },
+            { "Freeway", "Fwy" },
+            { "Highway", "Hwy" },
+            { "Junction", "Jct" },
+            { "Lane", "Ln" },
+            { "Parkway", "Pkwy" },
+            { "Road", "Rd" },
+            { "Station", "Stn" },
+            { "Street", "St" },
+            { "Track", "Trk" },
+            { "Tunnel", "Tunl" },
+            { "Way", "Wy" },
+        };
+
+        protected static string AbbreviateRoadSuffix(string name)
+        {
+            if (name.IndexOf(' ') < 0)
+                return name;
+
+            var suffix = LastWord(name);
+
+            string abbrev;
+            if (!RoadSuffixAbbreviations.TryGetValue(suffix, out abbrev))
+                abbrev = AutoShortenWord(suffix).Substring(0, 3);
+
+            return AllButLastWord(name) + " " + abbrev;
+        }
+
+        private static readonly HashSet<char> Vowels = new HashSet<char>
+        {
+            'a', 'e', 'i', 'o', 'u',
+            'A', 'E', 'I', 'O', 'U',
+        };
+
+        /// <summary>
+        /// Tries to shorten a word by removing unneeded letters.
+        /// </summary>
+        /// <param name="word">The word.</param>
+        /// <returns>A new string with length less than or equal to the length of <paramref name="word"/>.</returns>
+        /// <remarks>
+        /// <para>The first character is always preserved, even if it's a vowel.</para>
+        /// <para>It was hard to resist the temptation to call this <c>Abrvt</c>.</para>
+        /// </remarks>
+        protected static string AutoShortenWord(string word)
+        {
+            var sb = new StringBuilder(word);
+
+            for (int i = sb.Length - 1; i > 0; i--)
+            {
+                if (Vowels.Contains(sb[i]) || sb[i] == sb[i - 1] ||
+                    (sb[i] == 'c' && i + 1 < sb.Length && sb[i + 1] == 'k'))
+                {
+                    sb.Remove(i, 1);
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

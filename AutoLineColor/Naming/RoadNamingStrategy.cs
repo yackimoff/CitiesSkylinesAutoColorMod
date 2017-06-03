@@ -40,7 +40,9 @@ namespace AutoLineColor.Naming
 
                 if (analysis.Districts.Count > 0)
                 {
-                    districtBasedName = string.Join("/", analysis.Districts.ToArray());
+                    districtBasedName = string.Join("/",
+                        analysis.Districts.Select((d, i) => i == analysis.Districts.Count - 1 ? AbbreviateDistrictSuffix(d) : StripDistrictSuffix(d))
+                        .ToArray());
                 }
 
                 if (analysis.DistanceOnSegments.Count > 0)
@@ -73,7 +75,9 @@ namespace AutoLineColor.Naming
                     var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
                     var majority = sorted.Take(majoritySize);
 
-                    roadBasedName = string.Join("/", majority.Select(r => StripRoadSuffix(r.name)).ToArray());
+                    roadBasedName = string.Join("/",
+                        majority.Select((r, i) => i == majoritySize - 1 ? AbbreviateRoadSuffix(r.name) : StripRoadSuffix(r.name))
+                        .ToArray());
                 }
 
                 if (string.IsNullOrEmpty(districtBasedName) && string.IsNullOrEmpty(roadBasedName))
