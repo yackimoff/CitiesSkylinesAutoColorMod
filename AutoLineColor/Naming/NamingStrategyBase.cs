@@ -264,8 +264,11 @@ namespace AutoLineColor.Naming
             }
             return names;
         }
+    }
 
-        protected static string GetInitials(string words)
+    internal static class StringExtensions
+    {
+        public static string GetInitials(this string words)
         {
             string initials = words[0].ToString();
             for (int i = 0; i < words.Length - 1; i++)
@@ -278,35 +281,35 @@ namespace AutoLineColor.Naming
             return initials;
         }
 
-        protected static string FirstWord(string words)
+        public static string FirstWord(this string words)
         {
             var pos = words.IndexOf(' ');
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
 
-        protected static string LastWord(string words)
+        public static string LastWord(this string words)
         {
             var pos = words.LastIndexOf(' ');
             return pos >= 0 ? words.Substring(pos + 1) : words;
         }
 
-        protected static string AllButLastWord(string words)
+        public static string AllButLastWord(this string words)
         {
             var pos = words.LastIndexOf(' ');
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
 
-        protected static string StripDistrictSuffix(string name)
+        public static string StripDistrictSuffix(this string name)
         {
-            return AllButLastWord(name);
+            return name.AllButLastWord();
         }
 
-        protected static string StripRoadSuffix(string name)
+        public static string StripRoadSuffix(this string name)
         {
-            return AllButLastWord(name);
+            return name.AllButLastWord();
         }
 
-        protected static string AbbreviateDistrictSuffix(string name)
+        public static string AbbreviateDistrictSuffix(this string name)
         {
             // TODO: make localizable
 
@@ -318,7 +321,7 @@ namespace AutoLineColor.Naming
             switch (suffix)
             {
                 case "District":
-                    suffix = "Dst";
+                    suffix = "Dist";
                     break;
 
                 case "Heights":
@@ -338,11 +341,11 @@ namespace AutoLineColor.Naming
                     break;
 
                 default:
-                    suffix = AutoShortenWord(suffix).Substring(0, 3);
+                    suffix = suffix.AutoShorten().Substring(0, 3);
                     break;
             }
 
-            return AllButLastWord(name) + " " + suffix;
+            return name.AllButLastWord() + " " + suffix;
         }
 
         // TODO: make localizable
@@ -373,7 +376,7 @@ namespace AutoLineColor.Naming
             { "Way", "Wy" },
         };
 
-        protected static string AbbreviateRoadSuffix(string name)
+        public static string AbbreviateRoadSuffix(this string name)
         {
             if (name.IndexOf(' ') < 0)
                 return name;
@@ -382,7 +385,7 @@ namespace AutoLineColor.Naming
 
             string abbrev;
             if (!RoadSuffixAbbreviations.TryGetValue(suffix, out abbrev))
-                abbrev = AutoShortenWord(suffix).Substring(0, 3);
+                abbrev = AutoShorten(suffix).Substring(0, 3);
 
             return AllButLastWord(name) + " " + abbrev;
         }
@@ -402,7 +405,7 @@ namespace AutoLineColor.Naming
         /// <para>The first character is always preserved, even if it's a vowel.</para>
         /// <para>It was hard to resist the temptation to call this <c>Abrvt</c>.</para>
         /// </remarks>
-        protected static string AutoShortenWord(string word)
+        public static string AutoShorten(this string word)
         {
             var sb = new StringBuilder(word);
 
@@ -416,6 +419,18 @@ namespace AutoLineColor.Naming
             }
 
             return sb.ToString();
+        }
+
+        private static readonly char[] SpaceDelimiter = { ' ' };
+
+        public static string AutoShortenWords(this string words)
+        {
+            var split = words.Split(SpaceDelimiter);
+
+            for (int i = 0; i < split.Length; i++)
+                split[i] = split[i].AutoShorten();
+
+            return string.Join(" ", split);
         }
     }
 }

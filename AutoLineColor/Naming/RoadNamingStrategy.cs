@@ -36,12 +36,14 @@ namespace AutoLineColor.Naming
                     "Line traverses {0} segment names...",
                     analysis.DistanceOnSegments.Count));
 
-                string districtBasedName = null, roadBasedName = null;
+                IChunk districtBasedChunk = null, roadBasedChunk = null;
 
                 if (analysis.Districts.Count > 0)
                 {
-                    districtBasedName = string.Join("/",
-                        analysis.Districts.Select((d, i) => i == analysis.Districts.Count - 1 ? AbbreviateDistrictSuffix(d) : StripDistrictSuffix(d))
+                    districtBasedChunk = new DecayingListChunk(
+                        DecayMode.RespectEndpoints,
+                        analysis.Districts.Select((d, i) => new DistrictNameChunk(d,
+                            i == analysis.Districts.Count - 1 ? AbbreviationMode.AbbreviateSuffix : AbbreviationMode.StripSuffix))
                         .ToArray());
                 }
 
@@ -75,27 +77,41 @@ namespace AutoLineColor.Naming
                     var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
                     var majority = sorted.Take(majoritySize);
 
-                    roadBasedName = string.Join("/",
-                        majority.Select((r, i) => i == majoritySize - 1 ? AbbreviateRoadSuffix(r.name) : StripRoadSuffix(r.name))
-                        .ToArray());
+                    roadBasedChunk = new DecayingListChunk(
+                        DecayMode.RespectPriority,
+                        majority.Select((r, i) => new RoadNameChunk(r.name,
+                            i == majoritySize - 1 ? AbbreviationMode.AbbreviateSuffix : AbbreviationMode.StripSuffix))
+                            .ToArray());
                 }
 
-                if (string.IsNullOrEmpty(districtBasedName) && string.IsNullOrEmpty(roadBasedName))
+                if (districtBasedChunk == null && roadBasedChunk == null)
                 {
                     return null;
                 }
 
-                if (string.IsNullOrEmpty(districtBasedName))
+                if (districtBasedChunk == null)
                 {
-                    return string.Format("#{0} {1} Line", lineNum, roadBasedName);
+                    return new ConcatChunk(
+                        new StaticChunk("#" + lineNum + " "),
+                        roadBasedChunk,
+                        OptionalCosmeticChunk.Line)
+                        .VaryAndShortenToFit();
                 }
 
-                if (string.IsNullOrEmpty(roadBasedName))
+                if (roadBasedChunk == null)
                 {
-                    return string.Format("#{0} {1}", lineNum, districtBasedName);
+                    return new ConcatChunk(
+                        new StaticChunk("#" + lineNum + " "),
+                        districtBasedChunk)
+                        .VaryAndShortenToFit();
                 }
 
-                return string.Format("#{0} {1} via {2}", lineNum, districtBasedName, roadBasedName);
+                return new ConcatChunk(
+                    new StaticChunk("#" + lineNum + " "),
+                    districtBasedChunk,
+                    StaticChunk.Via,
+                    roadBasedChunk)
+                    .VaryAndShortenToFit();
             }
 
             return null;

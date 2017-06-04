@@ -83,27 +83,41 @@ namespace AutoLineColor
 
         // TODO: make this whole thing a coroutine?
         public override void OnUpdate(float realTimeDelta, float simulationTimeDelta)
-        {   //Digest changes
-            if (_config.UndigestedChanges == true) {
-                logger.Message("Applying undigested changes");
-                _colorStrategy = SetColorStrategy(_config.ColorStrategy);
-                _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
-                _config.UndigestedChanges = false;
+        {
+            TransportManager theTransportManager;
+            SimulationManager theSimulationManager;
+            TransportLine[] lines;
+
+            try
+            {
+                //Digest changes
+                if (_config.UndigestedChanges == true)
+                {
+                    logger.Message("Applying undigested changes");
+                    _colorStrategy = SetColorStrategy(_config.ColorStrategy);
+                    _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
+                    _config.UndigestedChanges = false;
+                }
+
+                if (_initialized == false)
+                    return;
+
+                // try and limit how often we are scanning for lines. this ain't that important
+                if (_nextUpdateTime >= DateTimeOffset.Now)
+                    return;
+
+                if (!Singleton<TransportManager>.exists || !Singleton<SimulationManager>.exists)
+                    return;
+
+                theTransportManager = Singleton<TransportManager>.instance;
+                theSimulationManager = Singleton<SimulationManager>.instance;
+                lines = theTransportManager.m_lines.m_buffer;
             }
-
-            if (_initialized == false)
+            catch (Exception ex)
+            {
+                logger.Error(ex.ToString());
                 return;
-
-            // try and limit how often we are scanning for lines. this ain't that important
-            if (_nextUpdateTime >= DateTimeOffset.Now)
-                return;
-
-            if (!Singleton<TransportManager>.exists || !Singleton<SimulationManager>.exists)
-                return;
-
-            var theTransportManager = Singleton<TransportManager>.instance;
-            var theSimulationManager = Singleton<SimulationManager>.instance;
-            var lines = theTransportManager.m_lines.m_buffer;
+            }
 
             bool locked = false;
 

@@ -31,7 +31,7 @@ namespace AutoLineColor.Naming
             var numbers = new List<string>();
             foreach (var name in names)
             {
-                numbers.Add(FirstWord(name));
+                numbers.Add(name.FirstWord());
             }
             return numbers;
         }
@@ -82,7 +82,7 @@ namespace AutoLineColor.Naming
             if (!analysis.HasNonDistrictStop && analysis.Districts.Count == 1)
             {
                 /* District Initials */
-                prefix = GetInitials(analysis.Districts[0]);
+                prefix = analysis.Districts[0].GetInitials();
                 number = 0;
                 string prefixed_number;
                 do
@@ -123,12 +123,12 @@ namespace AutoLineColor.Naming
                     break;
 
                 case 2:
-                    name = String.Format("{0} to {1}", FirstWord(analysis.Districts[0]), FirstWord(analysis.Districts[1]));
+                    name = String.Format("{0} to {1}", analysis.Districts[0].FirstWord(), analysis.Districts[1].FirstWord());
                     break;
 
                 case 3:
                     name = String.Format("{0}, {1} and {2}",
-                        FirstWord(analysis.Districts[0]), FirstWord(analysis.Districts[1]), FirstWord(analysis.Districts[2]));
+                        analysis.Districts[0].FirstWord(), analysis.Districts[1].FirstWord(), analysis.Districts[2].FirstWord());
                     break;
 
                 default:
@@ -172,7 +172,7 @@ namespace AutoLineColor.Naming
         {
             var analysis = AnalyzeLine(transportLine);
             string name = null;
-            var districtFirstNames = analysis.Districts.Select(FirstWord).ToList();
+            var districtFirstNames = analysis.Districts.Select(StringExtensions.FirstWord).ToList();
             var existingNames = GetExistingNames();
             int count = 0;
 
@@ -239,7 +239,7 @@ namespace AutoLineColor.Naming
             string ident = null;
             int number = Random.Range(1, 90);
             string name = null;
-            var districtFirstNames = analysis.Districts.Select(FirstWord).ToList();
+            var districtFirstNames = analysis.Districts.Select(StringExtensions.FirstWord).ToList();
             var existingNames = GetExistingNames();
             var existingNumbers = GetNumbers(existingNames);
 
