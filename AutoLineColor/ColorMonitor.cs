@@ -168,6 +168,18 @@ namespace AutoLineColor
         }
     }
 
+    [Serializable]
+    public class InconsistencyException : ApplicationException
+    {
+        public InconsistencyException() { }
+        public InconsistencyException(string message) : base(message) { }
+        public InconsistencyException(string message, Exception inner) : base(message, inner) { }
+
+        protected InconsistencyException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
+
     internal static class LineExtensions
     {
         private static Color32 _blackColor = new Color32(0, 0, 0, 0);

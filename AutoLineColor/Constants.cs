@@ -11,5 +11,6 @@ namespace AutoLineColor {
         public const double UpdateIntervalSeconds = 10.0;
 
         public const int MaxLineAnalysisStops = 50;
+        public const int BrokenListThreshold = 1000;
     }
 }
