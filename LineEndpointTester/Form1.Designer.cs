@@ -31,6 +31,7 @@
             this.clearButton = new System.Windows.Forms.Button();
             this.recalcButton = new System.Windows.Forms.Button();
             this.plusTenButton = new System.Windows.Forms.Button();
+            this.clipButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // clearButton
@@ -63,11 +64,22 @@
             this.plusTenButton.UseVisualStyleBackColor = true;
             this.plusTenButton.Click += new System.EventHandler(this.plusTenButton_Click);
             // 
+            // clipButton
+            // 
+            this.clipButton.Location = new System.Drawing.Point(255, 12);
+            this.clipButton.Name = "clipButton";
+            this.clipButton.Size = new System.Drawing.Size(75, 23);
+            this.clipButton.TabIndex = 3;
+            this.clipButton.Text = "-> Clipboard";
+            this.clipButton.UseVisualStyleBackColor = true;
+            this.clipButton.Click += new System.EventHandler(this.clipButton_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(629, 516);
+            this.Controls.Add(this.clipButton);
             this.Controls.Add(this.plusTenButton);
             this.Controls.Add(this.recalcButton);
             this.Controls.Add(this.clearButton);
@@ -84,6 +96,7 @@
         private System.Windows.Forms.Button clearButton;
         private System.Windows.Forms.Button recalcButton;
         private System.Windows.Forms.Button plusTenButton;
+        private System.Windows.Forms.Button clipButton;
     }
 }
 

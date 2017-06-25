@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace LineEndpointTester
 {
@@ -86,7 +85,7 @@ namespace LineEndpointTester
 
     class InteriorDistanceMetric : IDistanceMetric
     {
-        class Node
+        class Node : FastPriorityQueueNode
         {
             public int Index, OrigIndex;
             public PointF Location;
@@ -117,14 +116,21 @@ namespace LineEndpointTester
 
             nodes = pathNodes.ToArray();
             var numNodes = nodes.Length;
+            var sqrtNumNodes = (int)Math.Ceiling(Math.Sqrt(numNodes));
+            var edges = new List<Node>(sqrtNumNodes);
 
             for (int i = 0; i < numNodes; i++)
             {
                 var location = nodes[i].Location;
-                nodes[i].Edges =
-                    nodes
-                    .Where((n, j) => IsAdjacent(j, i) || (j != i && polygon.Contains(new LineSegment(location, n.Location))))
-                    .ToArray();
+
+                for (int j = 0; j < numNodes; j++)
+                {
+                    if (j != i && (IsAdjacent(i, j) || polygon.Contains(new LineSegment(location, nodes[j].Location))))
+                        edges.Add(nodes[j]);
+                }
+
+                nodes[i].Edges = edges.ToArray();
+                edges.Clear();
 
                 bool IsAdjacent(int a, int b)
                 {
@@ -163,7 +169,7 @@ namespace LineEndpointTester
             prev = new int[numNodes, numNodes];
 
             // repeat Dijkstra's algorithm to measure shortest paths between all nodes
-            var queue = new SimplePriorityQueue<Node, float>();
+            var queue = new FastPriorityQueue<Node>(numNodes);
 
             for (int startIndex = 0; startIndex < numNodes; startIndex++)
             {
@@ -252,91 +258,50 @@ namespace LineEndpointTester
             End = end;
         }
 
-        public bool Intersects(LineSegment other)
+        public bool Intersects(LineSegment other, out PointF intersection)
         {
-            return Intersects(Start, End, other.Start, other.End);
-        }
-
-        public bool Intersects(PointF otherStart, PointF otherEnd)
-        {
-            return Intersects(Start, End, otherStart, otherEnd);
+            return Intersects(Start, End, other.Start, other.End, out intersection);
         }
 
         public static bool Intersects(PointF start1, PointF end1, PointF start2, PointF end2)
         {
-            // based on http://www.stefanbader.ch/faster-line-segment-intersection-for-unity3dc/
-            var a = new PointF(end1.X - start1.X, end1.Y - start1.Y);
-            var b = new PointF(start2.X - end2.X, start2.Y - end2.Y);
-            var c = new PointF(start1.X - start2.X, start1.Y - start2.Y);
+            return Intersects(start1, end1, start2, end2, out _);
+        }
 
-            float alphaNumerator = b.Y * c.X - b.X * c.Y;
-            float alphaDenominator = a.Y * b.X - a.X * b.Y;
-            float betaNumerator = a.X * c.Y - a.Y * c.X;
-            float betaDenominator = alphaDenominator;
+        public static PointF? FindIntersection(PointF start1, PointF end1, PointF start2, PointF end2)
+        {
+            return Intersects(start1, end1, start2, end2, out var intersection) ? intersection : (PointF?)null;
+        }
 
-            if (alphaDenominator == 0 || betaDenominator == 0)
+        public static bool Intersects(PointF start1, PointF end1, PointF start2, PointF end2, out PointF intersection)
+        {
+            var s2_x = end2.X - start2.X;
+            var s2_y = end2.Y - start2.Y;
+            var s1_x = end1.X - start1.X;
+            var s1_y = end1.Y - start1.Y;
+
+            var det = -s2_x * s1_y + s1_x * s2_y;
+
+            if (Math.Abs(det) >= EPSILON)
             {
-                return false;
-            }
+                var s = (-s1_y * (start1.X - start2.X) + s1_x * (start1.Y - start2.Y)) / det;
+                var t = (s2_x * (start1.Y - start2.Y) - s2_y * (start1.X - start2.X)) / det;
 
-            if (alphaDenominator > 0)
-            {
-                if (alphaNumerator < 0 || alphaNumerator > alphaDenominator)
+                if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
                 {
-                    return false;
+                    intersection = new PointF(start1.X + t * s1_x, start1.Y + t * s1_y);
+                    return true;
                 }
             }
-            else if (alphaNumerator > 0 || alphaNumerator < alphaDenominator)
-            {
-                return false;
-            }
 
-            if (betaDenominator > 0)
-            {
-                if (betaNumerator < 0 || betaNumerator > betaDenominator)
-                {
-                    return false;
-                }
-            }
-            else if (betaNumerator > 0 || betaNumerator < betaDenominator)
-            {
-                return false;
-            }
-
-            return true;
+            intersection = default(PointF);
+            return false;
         }
 
-        public PointF FindIntersection(LineSegment other)
-        {
-            return FindIntersection(Start, End, other.Start, other.End);
-        }
-
-        public PointF FindIntersection(PointF otherStart, PointF otherEnd)
-        {
-            return FindIntersection(Start, End, otherStart, otherEnd);
-        }
-
-        public static PointF FindIntersection(PointF start1, PointF end1, PointF start2, PointF end2)
-        {
-            var dbx = end2.X - start2.X;
-            var dby = end2.Y - start2.Y;
-            var dax = end1.X - start1.X;
-            var day = end1.Y - start1.Y;
-
-            var u_b = dby * dax - dbx * day;
-            if (u_b != 0)
-            {
-                var ua = (dbx * (start1.Y - start2.Y) - dby * (start1.X - start2.X)) / u_b;
-                //return new PointF(start1.X - ua * -dax, start1.Y - ua * -day);
-                return new PointF(start1.X + ua * dax, start1.Y + ua * day);
-            }
-
-            throw new ArgumentException("No intersection between segments");
-        }
+        private const float EPSILON = 0.0000001f;
 
         private static bool PointsEqualish(PointF a, PointF b)
         {
-            const float EPSILON = 0.0000001f;
             return Math.Abs(a.X - b.X) < EPSILON && Math.Abs(a.Y - b.Y) < EPSILON;
         }
 
@@ -352,12 +317,11 @@ namespace LineEndpointTester
 
         public static bool Crosses(PointF start1, PointF end1, PointF start2, PointF end2)
         {
-            if (!Intersects(start1, end1, start2, end2))
+            if (!Intersects(start1, end1, start2, end2, out PointF pt))
                 return false;
 
-            var pt = FindIntersection(start1, end1, start2, end2);
-            return !(PointsEqualish(pt, start1) || PointsEqualish(pt, end1) ||
-                     PointsEqualish(pt, start2) || PointsEqualish(pt, end2));
+            return !(PointsEqualish(pt, start1) || PointsEqualish(pt, end1)
+                     /*|| PointsEqualish(pt, start2) || PointsEqualish(pt, end2)*/ );
         }
 
         public bool Equals(LineSegment other)
@@ -450,10 +414,6 @@ namespace LineEndpointTester
 
         public bool Contains(PointF candidate)
         {
-             //var minCoord = vertices.Select(pt => pt.X)
-            //    .Concat(vertices.Select(pt => pt.Y))
-            //    .Aggregate(Math.Min);
-
             var edge = new PointF(minCoord - 1, minCoord - 1);
             var parity = 0;
 
@@ -466,10 +426,8 @@ namespace LineEndpointTester
                     j = 0;
                 }
 
-                if (LineSegment.Intersects(edge, candidate, vertices[i], vertices[j]))
+                if (LineSegment.Intersects(edge, candidate, vertices[i], vertices[j], out PointF intersect))
                 {
-                    var intersect = LineSegment.FindIntersection(edge, candidate, vertices[i], vertices[j]);
-
                     if (PointsEqualish(candidate, intersect))
                         return true;
 
@@ -587,12 +545,10 @@ namespace LineEndpointTester
 
         private static IEnumerable<LineSegment> BreakIntersections(LineSegment interloper, IEnumerable<LineSegment> clippers)
         {
-            //SimplePriorityQueue<PointF, float> intersections;
             FastPriorityQueue<PointFQueueNode> intersections;
 
             if (intersectionQueue == null)
             {
-                //intersectionQueue = intersections = new SimplePriorityQueue<PointF, float>();
                 intersectionQueue = intersections = new FastPriorityQueue<PointFQueueNode>(64);
             }
             else
@@ -606,10 +562,8 @@ namespace LineEndpointTester
                 if (SegmentsEqualish(clipper, interloper))
                     continue;
 
-                if (clipper.Intersects(interloper))
+                if (clipper.Intersects(interloper, out PointF intersect))
                 {
-                    var intersect = clipper.FindIntersection(interloper);
-
                     if (PointsEqualish(intersect, interloper.Start) || PointsEqualish(intersect, interloper.End))
                         continue;
 
@@ -654,7 +608,6 @@ namespace LineEndpointTester
 
         public bool Contains(LineSegment candidate)
         {
-            //foreach (var seg in GetSegments(vertices))
             for (int i = 0; i < vertices.Length; i++)
             {
                 int j = i + 1;

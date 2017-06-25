@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LineEndpointTester
@@ -79,37 +78,46 @@ namespace LineEndpointTester
 
                 for (int i = 0; i < pointsForDrawing.Length - 1; i++)
                 {
-                    Color color;
+                    Brush brush;
 
                     if (pointIsSynthetic[i])
                     {
-                        color = Color.LightGray;
+                        brush = Brushes.LightGray;
                     }
                     else
                     {
                         if (oi == endpoint1)
-                            color = Color.Green;
+                            brush = Brushes.Green;
                         else if (oi == endpoint2)
-                            color = Color.Red;
+                            brush = Brushes.Red;
                         else
-                            color = Color.Black;
+                            brush = Brushes.Black;
 
                         oi++;
                     }
 
-                    using (var brush = new SolidBrush(color))
-                    {
-                        e.Graphics.FillEllipse(
-                            brush,
-                            pointsForDrawing[i].X - MarkSize / 2,
-                            pointsForDrawing[i].Y - MarkSize / 2,
-                            MarkSize,
-                            MarkSize);
-                    }
+                    e.Graphics.FillEllipse(
+                        brush,
+                        pointsForDrawing[i].X - MarkSize / 2,
+                        pointsForDrawing[i].Y - MarkSize / 2,
+                        MarkSize,
+                        MarkSize);
                 }
 
                 if (endpointPath != null && endpointPath.Length >= 2)
+                {
+                    for (int i = 1; i < endpointPath.Length - 1; i++)
+                    {
+                        e.Graphics.FillEllipse(
+                            Brushes.Goldenrod,
+                            endpointPath[i].X - MarkSize / 2,
+                            endpointPath[i].Y - MarkSize / 2,
+                            MarkSize,
+                            MarkSize);
+                    }
+
                     e.Graphics.DrawLines(Pens.Yellow, endpointPath);
+                }
             }
         }
 
@@ -158,6 +166,63 @@ namespace LineEndpointTester
             }
 
             OnPointsChanged();
+        }
+
+        private void clipButton_Click(object sender, EventArgs e)
+        {
+            var sb = new StringBuilder();
+
+            int oi = 0;
+
+            for (int i = 0; i < pointsForDrawing.Length - 1; i++)
+            {
+                sb.Append('(');
+                sb.Append(pointsForDrawing[i].X);
+                sb.Append(", ");
+                sb.Append(pointsForDrawing[i].Y);
+                sb.Append(") - (");
+                sb.Append(pointsForDrawing[i + 1].X);
+                sb.Append(", ");
+                sb.Append(pointsForDrawing[i + 1].Y);
+                sb.Append(')');
+
+                if (pointIsSynthetic[i])
+                {
+                    sb.Append(" (synthetic)");
+                }
+                else
+                {
+                    if (oi == endpoint1)
+                        sb.Append(" (start)");
+                    else if (oi == endpoint2)
+                        sb.Append(" (end)");
+
+                    oi++;
+                }
+
+                sb.AppendLine();
+            }
+
+            if (endpointPath != null && endpointPath.Length >= 2)
+            {
+                sb.AppendLine();
+
+                for (int i = 1; i < endpointPath.Length - 1; i++)
+                {
+                    sb.Append('(');
+                    sb.Append(endpointPath[i].X);
+                    sb.Append(", ");
+                    sb.Append(endpointPath[i].Y);
+                    sb.Append(") - (");
+                    sb.Append(endpointPath[i + 1].X);
+                    sb.Append(", ");
+                    sb.Append(endpointPath[i + 1].Y);
+                    sb.Append(')');
+                    sb.AppendLine();
+                }
+            }
+
+            Clipboard.SetText(sb.ToString());
         }
 
         private void clearButton_Click(object sender, EventArgs e)
