@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 
 namespace LineEndpointTester
 {
     // based on https://github.com/byronknoll/visibility-polygon-js (public domain)
 
-    interface IDistanceMetric
-    {
-        float GetDistanceBetweenPoints(int i, int j);
-        IEnumerable<PointF> GetPathBetweenPoints(int i, int j);
-        PointF[] GetPointsForDrawing(out bool[] pointIsSynthetic);
-    }
+    //interface IDistanceMetric
+    //{
+    //    float GetDistanceBetweenPoints(int i, int j);
+    //    IEnumerable<PointF> GetPathBetweenPoints(int i, int j);
+    //    PointF[] GetPointsForDrawing(out bool[] pointIsSynthetic);
+    //}
 
+/*
     class TravelDistanceMetric : IDistanceMetric
     {
         private readonly PointF[] points;
@@ -82,8 +82,9 @@ namespace LineEndpointTester
             return points.Concat(Enumerable.Repeat(points[0], 1)).ToArray();
         }
     }
+*/
 
-    class InteriorDistanceMetric : IDistanceMetric
+    class InteriorDistanceMetric //: IDistanceMetric
     {
         class Node : FastPriorityQueueNode
         {
@@ -162,7 +163,7 @@ namespace LineEndpointTester
             return nodeList.Select(n => n.Location).ToArray();
         }
 
-        private float[,] InitCosts(out float[,] costs, out int[,] prev)
+        private void InitCosts(out float[,] costs, out int[,] prev)
         {
             var numNodes = nodes.Length;
             costs = new float[numNodes, numNodes];
@@ -204,8 +205,6 @@ namespace LineEndpointTester
                     }
                 }
             }
-
-            return costs;
         }
 
         public float GetDistanceBetweenPoints(int i, int j)
@@ -263,16 +262,6 @@ namespace LineEndpointTester
             return Intersects(Start, End, other.Start, other.End, out intersection);
         }
 
-        public static bool Intersects(PointF start1, PointF end1, PointF start2, PointF end2)
-        {
-            return Intersects(start1, end1, start2, end2, out _);
-        }
-
-        public static PointF? FindIntersection(PointF start1, PointF end1, PointF start2, PointF end2)
-        {
-            return Intersects(start1, end1, start2, end2, out var intersection) ? intersection : (PointF?)null;
-        }
-
         public static bool Intersects(PointF start1, PointF end1, PointF start2, PointF end2, out PointF intersection)
         {
             var s2_x = end2.X - start2.X;
@@ -282,7 +271,7 @@ namespace LineEndpointTester
 
             var det = -s2_x * s1_y + s1_x * s2_y;
 
-            if (Math.Abs(det) >= EPSILON)
+            if (Math.Abs(det) >= Epsilon)
             {
                 var s = (-s1_y * (start1.X - start2.X) + s1_x * (start1.Y - start2.Y)) / det;
                 var t = (s2_x * (start1.Y - start2.Y) - s2_y * (start1.X - start2.X)) / det;
@@ -298,16 +287,11 @@ namespace LineEndpointTester
             return false;
         }
 
-        private const float EPSILON = 0.0000001f;
+        private const float Epsilon = 0.0000001f;
 
         private static bool PointsEqualish(PointF a, PointF b)
         {
-            return Math.Abs(a.X - b.X) < EPSILON && Math.Abs(a.Y - b.Y) < EPSILON;
-        }
-
-        public bool Crosses(LineSegment other)
-        {
-            return Crosses(Start, End, other.Start, other.End);
+            return Math.Abs(a.X - b.X) < Epsilon && Math.Abs(a.Y - b.Y) < Epsilon;
         }
 
         public bool Crosses(PointF otherStart, PointF otherEnd)
@@ -321,7 +305,7 @@ namespace LineEndpointTester
                 return false;
 
             return !(PointsEqualish(pt, start1) || PointsEqualish(pt, end1)
-                     /*|| PointsEqualish(pt, start2) || PointsEqualish(pt, end2)*/ );
+                /*|| PointsEqualish(pt, start2) || PointsEqualish(pt, end2)*/ );
         }
 
         public bool Equals(LineSegment other)
@@ -336,7 +320,7 @@ namespace LineEndpointTester
 
         public override int GetHashCode()
         {
-            return unchecked(Start.GetHashCode() << 2 ^ End.GetHashCode());
+            return (Start.GetHashCode() << 2) ^ End.GetHashCode();
         }
     }
 
@@ -469,19 +453,6 @@ namespace LineEndpointTester
             return a3;
         }
 
-        private static IEnumerable<LineSegment> GetSegments(IList<PointF> vertices)
-        {
-            var count = vertices.Count;
-
-            for (int i = 0; i < count; i++)
-            {
-                var j = i + 1;
-                if (j == count)
-                    j = 0;
-                yield return new LineSegment(vertices[i], vertices[j]);
-            }
-        }
-
         private static LineSegment[] GetSegmentArray(PointF[] vertices)
         {
             var result = new LineSegment[vertices.Length];
@@ -503,31 +474,27 @@ namespace LineEndpointTester
             return segments.Select(seg => seg.Start);
         }
 
+        const float Epsilon = 0.0000001f;
+
         private static bool PointsEqualish(PointF a, PointF b)
         {
-            const float EPSILON = 0.0000001f;
-            return Math.Abs(a.X - b.X) < EPSILON && Math.Abs(a.Y - b.Y) < EPSILON;
+            return Math.Abs(a.X - b.X) < Epsilon && Math.Abs(a.Y - b.Y) < Epsilon;
         }
 
         private static bool SegmentsEqualish(LineSegment a, LineSegment b)
         {
             return (PointsEqualish(a.Start, b.Start) && PointsEqualish(a.End, b.End)) ||
-                (PointsEqualish(a.Start, b.End) && PointsEqualish(a.End, b.Start));
-        }
-
-        private IEnumerable<LineSegment> BreakIntersections(LineSegment interloper)
-        {
-            return BreakIntersections(interloper, GetSegments(vertices));
+                   (PointsEqualish(a.Start, b.End) && PointsEqualish(a.End, b.Start));
         }
 
         private sealed class PointFQueueNode : FastPriorityQueueNode
         {
-            public PointFQueueNode(PointF value)
+            private PointFQueueNode(PointF value)
             {
                 Value = value;
             }
 
-            public PointF Value { get; }
+            private PointF Value { get; }
 
             public static implicit operator PointFQueueNode(PointF value)
             {
