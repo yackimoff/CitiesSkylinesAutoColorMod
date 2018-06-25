@@ -168,11 +168,9 @@ namespace AutoLineColor.Coloring
             var g2 = color2.g;
             var b1 = color1.b;
             var b2 = color2.b;
-            //var a1 = color1.a;
-            //var a2 = color2.a;
 
-            var d = Math.Sqrt(Math.Abs((r2 - r1) ^ 2 + (g2 - g1) ^ 2 + (b2 - b1) ^ 2));
-            var p = d / Math.Sqrt((255) ^ 2 + (255) ^ 2 + (255) ^ 2 );
+            var d = Math.Sqrt(Math.Abs(Math.Pow(r2 - r1, 2) + Math.Pow(g2 - g1, 2) + Math.Pow(b2 - b1, 2)));
+            var p = d / Math.Sqrt(255 * 255 * 3);
 
             if (Math.Abs(p) <= 0)
                 Logger.Message($"Color1: {color1} Color2: {color2} D: {d}");
