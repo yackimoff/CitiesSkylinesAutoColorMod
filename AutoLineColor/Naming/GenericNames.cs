@@ -1,28 +1,24 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 
-namespace AutoLineColor
+namespace AutoLineColor.Naming
 {
-    public class GenericNames
+    public static class GenericNames
     {
         private static string[] _names;
-        private const string defaultNames =
+        private const string DefaultNames =
             "Alpha,Bravo,Charlie,Delta,Echo,Foxtrot,Golf,Hotel,India,Juliet,Kilo,Lima,Mike," +
             "November,Oscar,Papa,Quebec,Romeo,Sierra,Tango,Uniform,Victor,Whiskey,Yankee,Zulu," +
             "Adams,Boston,Chicago,Denver,Easy,Frank,George,Henry,Ida,John,King,Lincoln,Mary," +
             "New,Ocean,Peter,Queen,Roger,Sugar,Thomas,Union,Victor,William,Young,Zero";
-        private static Console logger = Console.Instance;
 
         public static void Initialize()
         {
+            var logger = Console.Instance;
             var fullPath = Configuration.GetModFileName("genericnames.txt");
-            var unparsedNames = defaultNames;
+            var unparsedNames = DefaultNames;
 
             try
             {

@@ -3,51 +3,53 @@ using System.Threading;
 using AutoLineColor.Coloring;
 using AutoLineColor.Naming;
 using ColossalFramework;
-using ColossalFramework.Plugins;
 using ICities;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace AutoLineColor
 {
+    [UsedImplicitly]
     public class ColorMonitor : ThreadingExtensionBase
     {
+        private static readonly Console Logger = Console.Instance;
         private static DateTimeOffset _nextUpdateTime = DateTimeOffset.Now;
+
         private bool _initialized;
         private IColorStrategy _colorStrategy;
         private INamingStrategy _namingStrategy;
         private List<Color32> _usedColors;
         private Configuration _config;
-        private static Console logger = Console.Instance;
 
         public override void OnCreated(IThreading threading)
         {
-            logger.Message("===============================");
-            logger.Message("Initializing auto color monitor");
-            logger.Message("Initializing colors");
+            Logger.Message("===============================");
+            Logger.Message("Initializing auto color monitor");
+            Logger.Message("Initializing colors");
             RandomColor.Initialize();
             CategorisedColor.Initialize();
             GenericNames.Initialize();
 
-            logger.Message("Loading current config");
+            Logger.Message("Loading current config");
             _config = Configuration.Instance;
             _colorStrategy = SetColorStrategy(_config.ColorStrategy);
             _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
             _usedColors = new List<Color32>();
 
-            logger.Message("Found color strategy of " + _config.ColorStrategy);
-            logger.Message("Found naming strategy of " + _config.NamingStrategy);
+            Logger.Message("Found color strategy of " + _config.ColorStrategy);
+            Logger.Message("Found naming strategy of " + _config.NamingStrategy);
 
             _initialized = true;
 
-            logger.Message("done creating");
+            Logger.Message("done creating");
             base.OnCreated(threading);
         }
 
         private static INamingStrategy SetNamingStrategy(NamingStrategy namingStrategy)
         {
-            logger.Message("Naming Strategy: " + namingStrategy.ToString());
+            Logger.Message($"Naming Strategy: {namingStrategy}");
             switch (namingStrategy)
             {
                 case NamingStrategy.None:
@@ -59,14 +61,14 @@ namespace AutoLineColor
                 case NamingStrategy.Roads:
                     return new RoadNamingStrategy();
                 default:
-                    logger.Error("unknown naming strategy");
+                    Logger.Error("unknown naming strategy");
                     return new NoNamingStrategy();
             }
         }
 
-        private IColorStrategy SetColorStrategy(ColorStrategy colorStrategy)
+        private static IColorStrategy SetColorStrategy(ColorStrategy colorStrategy)
         {
-            logger.Message("Color Strategy: " + colorStrategy.ToString());
+            Logger.Message($"Color Strategy: {colorStrategy}");
             switch (colorStrategy)
             {
                 case ColorStrategy.RandomHue:
@@ -76,7 +78,7 @@ namespace AutoLineColor
                 case ColorStrategy.CategorisedColor:
                     return new CategorisedColorStrategy();
                 default:
-                    logger.Error("unknown color strategy");
+                    Logger.Error("unknown color strategy");
                     return new RandomHueStrategy();
             }
         }
@@ -91,9 +93,9 @@ namespace AutoLineColor
             try
             {
                 //Digest changes
-                if (_config.UndigestedChanges == true)
+                if (_config.UndigestedChanges)
                 {
-                    logger.Message("Applying undigested changes");
+                    Logger.Message("Applying undigested changes");
                     _colorStrategy = SetColorStrategy(_config.ColorStrategy);
                     _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
                     _config.UndigestedChanges = false;
@@ -115,11 +117,11 @@ namespace AutoLineColor
             }
             catch (Exception ex)
             {
-                logger.Error(ex.ToString());
+                Logger.Error(ex.ToString());
                 return;
             }
 
-            bool locked = false;
+            var locked = false;
 
             try
             {
@@ -143,11 +145,11 @@ namespace AutoLineColor
                     if (!transportLine.Complete)
                         continue;
 
-                    // only worry about fully created lines 
+                    // only worry about fully created lines
                     if (!transportLine.IsActive() || transportLine.HasCustomName() || !transportLine.m_color.IsDefaultColor())
                         continue;
 
-                    logger.Message(string.Format("Working on line {0}", i));
+                    Logger.Message($"Working on line {i}");
 
                     var lineName = theTransportManager.GetLineName(i);
                     var newName = _namingStrategy.GetName(transportLine);
@@ -155,24 +157,23 @@ namespace AutoLineColor
                     if (!transportLine.HasCustomColor() || transportLine.m_color.IsDefaultColor())
                     {
                         var color = _colorStrategy.GetColor(transportLine, _usedColors);
-                        
-                        logger.Message(string.Format("Changing line {0} color from {1} to {2}", i, theTransportManager.GetLineColor(i), color));
+
+                        Logger.Message($"Changing line {i} color from {theTransportManager.GetLineColor(i)} to {color}");
 
                         theSimulationManager.AddAction(theTransportManager.SetLineColor(i, color));
                     }
 
-                    if (string.IsNullOrEmpty(newName) == false &&
-                        transportLine.HasCustomName() == false)
-                    {
-                        logger.Message(string.Format("Changing line {0} name from '{1}' to '{2}'", i, lineName, newName));
+                    if (string.IsNullOrEmpty(newName) || transportLine.HasCustomName())
+                        continue;
 
-                        theSimulationManager.AddAction(theTransportManager.SetLineName(i, newName));
-                    }
+                    Logger.Message($"Changing line {i} name from '{lineName}' to '{newName}'");
+
+                    theSimulationManager.AddAction(theTransportManager.SetLineName(i, newName));
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex.ToString());
+                Logger.Error(ex.ToString());
             }
             finally
             {
@@ -186,22 +187,22 @@ namespace AutoLineColor
 
     internal static class LineExtensions
     {
-        private static Color32 _blackColor = new Color32(0, 0, 0, 0);
-        private static Color32 _defaultBusColor = new Color32(44,142,191,255);
-        private static Color32 _defaultMetroColor = new Color32(0,184,0,255);
-        private static Color32 _defaultTrainColor = new Color32(219,86,0,255);
+        private static readonly Color32 BlackColor = new Color32(0, 0, 0, 0);
+        private static readonly Color32 DefaultBusColor = new Color32(44, 142, 191, 255);
+        private static readonly Color32 DefaultMetroColor = new Color32(0, 184, 0, 255);
+        private static readonly Color32 DefaultTrainColor = new Color32(219, 86, 0, 255);
 
         public static bool IsDefaultColor(this Color32 color)
         {
-            return (color.IsColorEqual(_blackColor) ||
-                color.IsColorEqual(_defaultBusColor) ||
-                color.IsColorEqual(_defaultMetroColor) ||
-                color.IsColorEqual(_defaultTrainColor));
+            return color.IsColorEqual(BlackColor) ||
+                   color.IsColorEqual(DefaultBusColor) ||
+                   color.IsColorEqual(DefaultMetroColor) ||
+                   color.IsColorEqual(DefaultTrainColor);
         }
 
         public static bool IsColorEqual(this Color32 color1, Color32 color2)
         {
-            return (color1.r == color2.r && color1.g == color2.g && color1.b == color2.b && color1.a == color2.a);
+            return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b && color1.a == color2.a;
         }
 
         public static bool IsActive(this TransportLine transportLine)
@@ -210,10 +211,7 @@ namespace AutoLineColor
                 return false;
 
             // stations are marked with this flag
-            if ((transportLine.m_flags & TransportLine.Flags.Temporary) == TransportLine.Flags.Temporary)
-                return false;
-
-            return true;
+            return (transportLine.m_flags & TransportLine.Flags.Temporary) != TransportLine.Flags.Temporary;
         }
 
         public static bool HasCustomColor(this TransportLine transportLine)
@@ -227,7 +225,7 @@ namespace AutoLineColor
         }
     }
 
-    internal static class IEnumerableExtensions
+    internal static class EnumerableExtensions
     {
         public static IEnumerable<TResult> Scan<TSource, TAccumulate, TResult>(
             this IEnumerable<TSource> source,

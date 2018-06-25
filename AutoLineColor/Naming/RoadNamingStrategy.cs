@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace AutoLineColor.Naming
 {
@@ -21,96 +19,96 @@ namespace AutoLineColor.Naming
      * stations are on.
      */
 
-    class RoadNamingStrategy : NamingStrategyBase
+    internal class RoadNamingStrategy : NamingStrategyBase
     {
         protected override string GetGenericLineName(TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             var lineNum = transportLine.m_lineNumber;
 
-            if (analysis.DistanceOnSegments != null)
+            if (analysis.DistanceOnSegments == null)
+                return null;
+
+            var logger = Console.Instance;
+
+            logger.Message($"Line traverses {analysis.DistanceOnSegments.Count} segment names...");
+
+            IChunk districtBasedChunk = null, roadBasedChunk = null;
+
+            if (analysis.Districts.Count > 0)
             {
-                var logger = Console.Instance;
+                districtBasedChunk = new DecayingListChunk(
+                    DecayMode.RespectEndpoints,
+                    analysis.Districts.Select((d, i) => new DistrictNameChunk(d,
+                            i == analysis.Districts.Count - 1
+                                ? AbbreviationMode.AbbreviateSuffix
+                                : AbbreviationMode.StripSuffix))
+                        .Cast<IChunk>().ToArray());
+            }
 
-                logger.Message(string.Format(
-                    "Line traverses {0} segment names...",
-                    analysis.DistanceOnSegments.Count));
-
-                IChunk districtBasedChunk = null, roadBasedChunk = null;
-
-                if (analysis.Districts.Count > 0)
+            if (analysis.DistanceOnSegments.Count > 0)
+            {
+                foreach (var pair in analysis.DistanceOnSegments)
                 {
-                    districtBasedChunk = new DecayingListChunk(
-                        DecayMode.RespectEndpoints,
-                        analysis.Districts.Select((d, i) => new DistrictNameChunk(d,
-                            i == analysis.Districts.Count - 1 ? AbbreviationMode.AbbreviateSuffix : AbbreviationMode.StripSuffix))
-                        .ToArray());
+                    logger.Message($"... '{pair.Key}' (for {pair.Value} units)");
                 }
 
-                if (analysis.DistanceOnSegments.Count > 0)
+                // sort all segment names by descending distance traveled, and add up the cumulative distance
+                var sorted = analysis.DistanceOnSegments
+                    .OrderByDescending(p => p.Value)
+                    .Scan(0f, (cd, p) => cd + p.Value,
+                        (p, cd) => new { name = p.Key, distance = p.Value, cumulativeDistance = cd })
+                    .ToArray();
+
+                // find the minimum set of roads that make up more than half the total distance
+                var totalDistance = analysis.DistanceOnSegments.Sum(p => p.Value);
+
+                logger.Message("totalDistance=" + totalDistance);
+                logger.Message("with cumulative:");
+                foreach (var r in sorted)
                 {
-                    foreach (var pair in analysis.DistanceOnSegments)
-                    {
-                        logger.Message(string.Format(
-                            "... '{0}' (for {1} units)",
-                            pair.Key,
-                            pair.Value));
-                    }
-
-                    // sort all segment names by descending distance traveled, and add up the cumulative distance
-                    var sorted = analysis.DistanceOnSegments
-                        .OrderByDescending(p => p.Value)
-                        .Scan(0f, (cd, p) => cd + p.Value,
-                            (p, cd) => new { name = p.Key, distance = p.Value, cumulativeDistance = cd })
-                        .ToArray();
-
-                    // find the minimum set of roads that make up more than half the total distance
-                    var totalDistance = analysis.DistanceOnSegments.Sum(p => p.Value);
-
-                    logger.Message("totalDistance=" + totalDistance);
-                    logger.Message("with cumulative:");
-                    foreach (var r in sorted)
-                    {
-                        logger.Message(string.Format("'{0}', d={1}, cd={2}", r.name, r.distance, r.cumulativeDistance));
-                    }
-
-                    var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
-                    var majority = sorted.Take(majoritySize);
-
-                    roadBasedChunk = new DecayingListChunk(
-                        DecayMode.RespectPriority,
-                        majority.Select((r, i) => new RoadNameChunk(r.name,
-                            i == majoritySize - 1 ? AbbreviationMode.AbbreviateSuffix : AbbreviationMode.StripSuffix))
-                            .ToArray());
+                    logger.Message($"'{r.name}', d={r.distance}, cd={r.cumulativeDistance}");
                 }
 
-                if (districtBasedChunk == null && roadBasedChunk == null)
-                {
-                    return null;
-                }
+                var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
+                var majority = sorted.Take(majoritySize);
 
-                if (districtBasedChunk == null)
+                roadBasedChunk = new DecayingListChunk(
+                    DecayMode.RespectPriority,
+                    majority.Select(
+                            (r, i) => new RoadNameChunk(r.name,
+                                i == majoritySize - 1
+                                    ? AbbreviationMode.AbbreviateSuffix
+                                    : AbbreviationMode.StripSuffix))
+                        .Cast<IChunk>().ToArray());
+            }
+
+            var lineNumChunk = new StaticChunk("#" + lineNum + " ");
+
+            if (districtBasedChunk != null)
+            {
+                if (roadBasedChunk != null)
                 {
                     return new ConcatChunk(
-                        new StaticChunk("#" + lineNum + " "),
-                        roadBasedChunk,
-                        OptionalCosmeticChunk.Line)
-                        .VaryAndShortenToFit();
-                }
-
-                if (roadBasedChunk == null)
-                {
-                    return new ConcatChunk(
-                        new StaticChunk("#" + lineNum + " "),
-                        districtBasedChunk)
+                            lineNumChunk,
+                            districtBasedChunk,
+                            StaticChunk.Via,
+                            roadBasedChunk)
                         .VaryAndShortenToFit();
                 }
 
                 return new ConcatChunk(
-                    new StaticChunk("#" + lineNum + " "),
-                    districtBasedChunk,
-                    StaticChunk.Via,
-                    roadBasedChunk)
+                        lineNumChunk,
+                        districtBasedChunk)
+                    .VaryAndShortenToFit();
+            }
+
+            if (roadBasedChunk != null)
+            {
+                return new ConcatChunk(
+                        lineNumChunk,
+                        roadBasedChunk,
+                        OptionalCosmeticChunk.Line)
                     .VaryAndShortenToFit();
             }
 

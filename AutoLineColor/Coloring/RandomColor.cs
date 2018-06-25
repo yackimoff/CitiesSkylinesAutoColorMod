@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace AutoLineColor.Coloring
 {
-    class RandomColor
+    internal static class RandomColor
     {
         // generated from http://phrogz.net/css/distinct-colors.html
         // thanks to transport line color for the site - https://github.com/tuopppi/TransportLineColorMod/blob/master/TransportLineColorMod/ColorAssigner.cs
@@ -17,7 +16,7 @@ namespace AutoLineColor.Coloring
         private const string DefaultGreenColors = "#6af500, #54b807, #7ad633, #8df53d, #467a1f, #66a832, #629939, #527a33, #87c756, #b6f587, #75995a, #a9d687, #97b87f, #738a62, #349912, #54d629, #3d8a24, #56b835, #83f55d, #87e667, #70b858, #629950, #8ed676, #7fb86c, #567a49, #b8f5a4, #087a00, #13a808, #2f7a2a, #45a83e, #427a3e, #a0f59a, #9cd698, #0be625, #3ed650, #4ef562, #6bd678, #7ff58d, #65b86f, #57995f, #79b880, #547a59, #06b83b, #048a2c, #2ab855, #28994a, #49e678, #2f8a4a, #367a4a, #74d691, #89f5a9, #5d996f, #93e6ac, #7fb890, #98d6ab";
         private const string DefaultOrangeColors = "#a80000, #c70202, #e51515, #991212, #c71c1c, #e52c2c, #b82727, #992525, #f52f02, #b82504, #991f03, #e5411c, #99311a, #b84025, #f55d3b, #d65133, #b84402, #f55e07, #d65911, #99400c, #c7632a, #a85525, #f57d38, #e58005, #c76f04, #a86718, #f5992a, #c7812c, #996423, #997000, #b88806, #f5bc20, #d6a51e, #a88628, #d6c400, #a89c16, #f5e322, #c7ba2c";
 
-        private static Console logger = Console.Instance;
+        private static readonly Console Logger = Console.Instance;
         private static Dictionary<ColorFamily, Color32[]> _colors;
 
         public static void Initialize()
@@ -31,7 +30,7 @@ namespace AutoLineColor.Coloring
             };
         }
 
-        public static Color32 GetColor(ColorFamily colorFamily)
+        private static Color32 GetColor(ColorFamily colorFamily)
         {
             return _colors[colorFamily][Random.Range(0, _colors[colorFamily].Length - 1)];
         }
@@ -50,13 +49,13 @@ namespace AutoLineColor.Coloring
                 }
                 else
                 {
-                    logger.Message("No colors found, writing default values to  " + fullPath);
+                    Logger.Message("No colors found, writing default values to  " + fullPath);
                     File.WriteAllText(fullPath, unparsedColors);
                 }
             }
             catch (Exception ex)
             {
-                logger.Error("error reading colors from disk " + ex);
+                Logger.Error("error reading colors from disk " + ex);
             }
 
             // split on new lines, commas and semi-colons
@@ -64,9 +63,7 @@ namespace AutoLineColor.Coloring
             var colorList = new List<Color32>();
             foreach (var colorHexValue in colorHexValues)
             {
-
-                Color32 color;
-                if (TryHexToColor(colorHexValue, out color))
+                if (TryHexToColor(colorHexValue, out var color))
                 {
                     colorList.Add(color);
                 }
@@ -118,7 +115,7 @@ namespace AutoLineColor.Coloring
                 color = GetColor(colorFamily);
                 difference = CompareColorWithUsedColors(usedColors, color);
 
-            } while (difference < Configuration.Instance.MinColorDiffPercentage && (atempts < Configuration.Instance.MaxDiffColorPickAttempt));
+            } while (difference < Configuration.Instance.MinColorDiffPercentage && atempts < Configuration.Instance.MaxDiffColorPickAttempt);
 
             if (difference <= 0)
             {
@@ -127,13 +124,14 @@ namespace AutoLineColor.Coloring
                     var differentColorFound = false;
                     foreach (var colorItem in _colors[colorFamily])
                     {
-                        if (!usedColor.IsColorEqual(colorItem))
-                        {
-                            color = colorItem;
-                            differentColorFound = true;
-                            logger.Message(string.Format("Color not repeated: {0} Color2: {2} Diference: {1}", color, CompareColorWithUsedColors(usedColors, color), usedColor));
-                            break;
-                        }
+                        if (usedColor.IsColorEqual(colorItem))
+                            continue;
+
+                        color = colorItem;
+                        differentColorFound = true;
+                        Logger.Message(
+                            $"Color not repeated: {color} Color2: {usedColor} Diference: {CompareColorWithUsedColors(usedColors, color)}");
+                        break;
                     }
                     if (differentColorFound)
                         break;
@@ -141,7 +139,7 @@ namespace AutoLineColor.Coloring
 
             }
 
-            logger.Message(string.Format("Diference: {0} Atempts: {1}", difference, atempts));
+            Logger.Message($"Diference: {difference} Atempts: {atempts}");
 
             return color;
         }
@@ -152,17 +150,17 @@ namespace AutoLineColor.Coloring
             foreach (var usedColor in usedColors)
             {
                 var auxDifference = CompareColors(color, usedColor);
-                if (auxDifference < difference)
-                {
-                    difference = auxDifference;
-                    if (difference <= 0)
-                        return 0;
-                }
+                if (auxDifference >= difference)
+                    continue;
+
+                difference = auxDifference;
+                if (difference <= 0)
+                    return 0;
             }
             return difference;
         }
 
-        public static double CompareColors(Color32 color1, Color32 color2)
+        private static double CompareColors(Color32 color1, Color32 color2)
         {
             var r1 = color1.r;
             var r2 = color2.r;
@@ -177,7 +175,7 @@ namespace AutoLineColor.Coloring
             var p = d / Math.Sqrt((255) ^ 2 + (255) ^ 2 + (255) ^ 2 );
 
             if (Math.Abs(p) <= 0)
-                logger.Message(string.Format("Color1: {1} Color2: {2} D: {0}", d, color1, color2));
+                Logger.Message($"Color1: {color1} Color2: {color2} D: {d}");
             return p * 100;
         }
     }

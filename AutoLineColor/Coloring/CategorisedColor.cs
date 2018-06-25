@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 /*
  * Categorised coloring scheme
@@ -47,17 +46,16 @@ using Random = UnityEngine.Random;
 
 namespace AutoLineColor.Coloring
 {
-    class CategorisedColor
+    internal static class CategorisedColor
     {
-        private const string DefaultBrightColors = "#00ee20, #4900ff, #ffc000, #00e4ff, #ff00b4, #60ff00, #0014ff, #ff4500, #00ffc9, #ea00ff, #a5ff00, #006eff, #ff0300, #00ff8a, #9900ff, #fff700, #00acff, #ff005f, #00a816, #3300b4, #b48700, #00a1b4, #b4007f, #43b400, #000eb4, #b43000, #00b48e, #a500b4, #74b400, #004db4, #b40200, #00b461, #6c00b4, #b4ae00, #0079b4, #b40043"; 
+        private const string DefaultBrightColors = "#00ee20, #4900ff, #ffc000, #00e4ff, #ff00b4, #60ff00, #0014ff, #ff4500, #00ffc9, #ea00ff, #a5ff00, #006eff, #ff0300, #00ff8a, #9900ff, #fff700, #00acff, #ff005f, #00a816, #3300b4, #b48700, #00a1b4, #b4007f, #43b400, #000eb4, #b43000, #00b48e, #a500b4, #74b400, #004db4, #b40200, #00b461, #6c00b4, #b4ae00, #0079b4, #b40043";
         private const string DefaultPaleColors = "#bccaff, #ffbcbc, #bcffd2, #d6bcff, #fffbbc, #bcddff, #ffbcc6, #bcf7bd, #c2bcff, #ffe4bc, #bcf3ff, #ffbce0, #c7ffbc, #bcbcff, #ffc1bc, #bcffe8, #f5bcff, #daffbc, #a6baff, #ffa6a6, #a6ffc4, #cba6ff, #fffaa6, #a6d3ff, #ffa6b5, #a6f5a8, #afa6ff, #ffdda6, #a6efff, #ffa6d7, #b6ffa6, #a6a7ff, #ffaea6, #a6ffe1, #f3a6ff, #d0ffa6, #7f9eff, #ff7f7f, #7fffae, #b77fff, #fff97f, #7fc3ff, #ff7f97, #7ff282, #8d7fff, #ffd17f, #7feaff, #ff7fc9, #97ff7f, #7f80ff, #ff8c7f, #7fffd7, #ef7fff, #bfff7f";
         private const string DefaultDarkColors = "#7f2200, #007f64, #75007f, #527f00, #00377f, #7f0100, #007f45, #4c007f, #7f7b00, #00567f, #7f002f, #007710, #24007f, #7f6000, #00727f, #7f005a, #307f00, #000a7f";
 
-        private static Console logger = Console.Instance;
         private static List<Color32> _bright_colors;
         private static List<Color32> _pale_colors;
         private static List<Color32> _dark_colors;
-        private static Color32 _black = new Color32(0, 0, 0, 255);
+        private static readonly Color32 Black = new Color32(0, 0, 0, 255);
 
         public static void Initialize()
         {
@@ -68,6 +66,8 @@ namespace AutoLineColor.Coloring
 
         private static List<Color32> BuildColorList(string defaultColorList, string fileName)
         {
+            var logger = Console.Instance;
+
             // we need to load the color list
             var fullPath = Configuration.GetModFileName(fileName);
             var unparsedColors = defaultColorList;
@@ -94,8 +94,7 @@ namespace AutoLineColor.Coloring
             var colorList = new List<Color32>();
             foreach (var colorHexValue in colorHexValues)
             {
-                Color32 color;
-                if (TryHexToColor(colorHexValue, out color))
+                if (TryHexToColor(colorHexValue, out var color))
                 {
                     colorList.Add(color);
                 }
@@ -129,19 +128,20 @@ namespace AutoLineColor.Coloring
             }
             catch (Exception)
             {
-                color = _black;
+                color = Black;
                 return false;
             }
 
         }
 
-        private static Color32 GetColor(List<Color32> colors, List<Color32> usedColors)
+        // TODO: usedColors is never null, simplify
+        private static Color32 GetColor(IEnumerable<Color32> colors, List<Color32> usedColors)
         {
-            var color = _black;
-            int usedCount = -1;
+            var color = Black;
+            var usedCount = -1;
             foreach (var candidateColor in colors)
             {
-                int candidateUsedCount = 0;
+                var candidateUsedCount = 0;
                 if (usedColors != null)
                 {
                     foreach (var usedColor in usedColors)
@@ -152,11 +152,11 @@ namespace AutoLineColor.Coloring
                         }
                     }
                 }
-                if (usedCount == -1 || candidateUsedCount < usedCount)
-                {
-                    color = candidateColor;
-                    usedCount = candidateUsedCount;
-                }
+
+                if (usedCount != -1 && candidateUsedCount >= usedCount)
+                    continue;
+                color = candidateColor;
+                usedCount = candidateUsedCount;
             }
             return color;
         }

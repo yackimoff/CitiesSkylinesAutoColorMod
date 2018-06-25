@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -21,23 +22,23 @@ namespace AutoLineColor.Naming
     /// create a separate Green St Line; we need to use a variant, maybe a different
     /// street name.</para>
     /// </remarks>
-    interface IChunk
+    internal interface IChunk
     {
         IEnumerable<IChunk> GetVariants();
 
         IEnumerable<string> GetShortenings();
     }
 
-    static class IChunkExtensions
+    internal static class ChunkExtensions
     {
-        public static IEnumerable<IChunk> GetThisAndVariants(this IChunk chunk)
+        private static IEnumerable<IChunk> GetThisAndVariants(this IChunk chunk)
         {
-            return Enumerable.Concat(Enumerable.Repeat(chunk, 1), chunk.GetVariants());
+            return Enumerable.Repeat(chunk, 1).Concat(chunk.GetVariants());
         }
 
-        public static IEnumerable<string> GetThisAndShortenings(this IChunk chunk)
+        private static IEnumerable<string> GetThisAndShortenings(this IChunk chunk)
         {
-            return Enumerable.Concat(Enumerable.Repeat(chunk.ToString(), 1), chunk.GetShortenings());
+            return Enumerable.Repeat(chunk.ToString(), 1).Concat(chunk.GetShortenings());
         }
 
         public static string VaryAndShortenToFit(this IChunk chunk)
@@ -45,7 +46,7 @@ namespace AutoLineColor.Naming
             return VaryAndShortenToFit(chunk, null, s => s.Length <= 32) ?? chunk.ToString();
         }
 
-        public static string VaryAndShortenToFit(
+        private static string VaryAndShortenToFit(
             this IChunk chunk,
             Predicate<string> variantPredicate,
             Predicate<string> shorteningPredicate)
@@ -58,7 +59,7 @@ namespace AutoLineColor.Naming
                 {
                     var vs = v.ToString();
 
-                    logger.Message(string.Format("VaryAndShortenToFit: check variant '{0}'", vs));
+                    logger.Message($"VaryAndShortenToFit: check variant '{vs}'");
 
                     if (!variantPredicate(vs))
                         continue;
@@ -66,27 +67,27 @@ namespace AutoLineColor.Naming
 
                 foreach (var s in v.GetThisAndShortenings())
                 {
-                    logger.Message(string.Format("VaryAndShortenToFit: check shortening '{0}'", s));
+                    logger.Message($"VaryAndShortenToFit: check shortening '{s}'");
 
                     if (shorteningPredicate == null || shorteningPredicate(s))
                         return s;
                 }
             }
 
-            logger.Message(string.Format("VaryAndShortenToFit: gave up"));
+            logger.Message("VaryAndShortenToFit: gave up");
 
             return null;
         }
     }
 
-    abstract class CompositeChunk : IChunk
+    internal abstract class CompositeChunk : IChunk
     {
-        protected readonly IChunk[] parts;
+        protected readonly IChunk[] Parts;
 
         protected CompositeChunk(IChunk[] parts)
         {
             Debug.Assert(parts != null && parts.Length > 0);
-            this.parts = parts;
+            this.Parts = parts;
         }
 
         public abstract override string ToString();
@@ -111,17 +112,17 @@ namespace AutoLineColor.Naming
             {
                 while (true)
                 {
-                    bool shortenedAnyPart = false;
+                    var shortenedAnyPart = false;
 
-                    for (int i = 0; i < enumerators.Length; i++)
+                    for (var i = 0; i < enumerators.Length; i++)
                     {
                         var e = enumerators[i];
 
-                        if (e.MoveNext())
-                        {
-                            shortenedParts[i] = e.Current;
-                            shortenedAnyPart = true;
-                        }
+                        if (!e.MoveNext())
+                            continue;
+
+                        shortenedParts[i] = e.Current;
+                        shortenedAnyPart = true;
                     }
 
                     if (!shortenedAnyPart)
@@ -154,7 +155,7 @@ namespace AutoLineColor.Naming
 
             try
             {
-                int lastVaried = -1;
+                var lastVaried = -1;
 
                 while (true)
                 {
@@ -162,29 +163,27 @@ namespace AutoLineColor.Naming
 
                     var sequence =
                         Enumerable.Range(lastVaried, enumerators.Length - lastVaried)
-                        .Concat(Enumerable.Range(0, lastVaried));
+                            .Concat(Enumerable.Range(0, lastVaried));
 
-                    bool variedAnyPart = false;
+                    var variedAnyPart = false;
 
-                    foreach (int i in sequence)
+                    foreach (var i in sequence)
                     {
                         var e = enumerators[i];
 
-                        if (e != null)
+                        if (e == null)
+                            continue;
+
+                        if (e.MoveNext())
                         {
-                            if (e.MoveNext())
-                            {
-                                variedParts[i] = e.Current;
-                                variedAnyPart = true;
-                                lastVaried = i;
-                                break;
-                            }
-                            else
-                            {
-                                enumerators[i] = null;
-                                e.Dispose();
-                            }
+                            variedParts[i] = e.Current;
+                            variedAnyPart = true;
+                            lastVaried = i;
+                            break;
                         }
+
+                        enumerators[i] = null;
+                        e.Dispose();
                     }
 
                     if (!variedAnyPart)
@@ -196,33 +195,36 @@ namespace AutoLineColor.Naming
             finally
             {
                 foreach (var e in enumerators)
-                    if (e != null)
-                        e.Dispose();
+                {
+                    e?.Dispose();
+                }
             }
         }
     }
 
-    class ConcatChunk : CompositeChunk
+    internal class ConcatChunk : CompositeChunk
     {
         public ConcatChunk(params IChunk[] parts) : base(parts) { }
 
         public override string ToString()
         {
-            return string.Concat(parts);
+            // ReSharper disable once CoVariantArrayConversion
+            return string.Concat(Parts);
         }
 
         public override IEnumerable<string> GetShortenings()
         {
-            return ShortenAllPartsEachIteration(parts);
+            return ShortenAllPartsEachIteration(Parts);
         }
 
         public override IEnumerable<IChunk> GetVariants()
         {
-            return VaryOnePartAtATime(parts, parts => new ConcatChunk(parts));
+            return VaryOnePartAtATime(Parts, parts => new ConcatChunk(parts));
         }
     }
 
-    class AlternativesChunk : CompositeChunk
+/*
+    internal class AlternativesChunk : CompositeChunk
     {
         public AlternativesChunk(params IChunk[] parts) : base(parts) { }
 
@@ -241,34 +243,35 @@ namespace AutoLineColor.Naming
             return parts.Skip(1);
         }
     }
+*/
 
-    enum DecayMode
+    internal enum DecayMode
     {
         RespectEndpoints,
         RespectPriority,
     }
 
-    class DecayingListChunk : CompositeChunk
+    internal class DecayingListChunk : CompositeChunk
     {
-        protected readonly string delimiter;
-        protected readonly DecayMode mode;
+        private readonly string _delimiter;
+        private readonly DecayMode _mode;
 
-        public DecayingListChunk(DecayMode mode, params IChunk[] parts) : this(mode, parts, "/") { }
+        public DecayingListChunk(DecayMode mode, params IChunk[] parts) : this(mode, "/", parts) { }
 
-        public DecayingListChunk(DecayMode mode, IChunk[] parts, string delimiter) : base(parts)
+        private DecayingListChunk(DecayMode mode, string delimiter, params IChunk[] parts) : base(parts)
         {
-            this.delimiter = delimiter;
-            this.mode = mode;
+            this._delimiter = delimiter;
+            this._mode = mode;
         }
 
-        protected string JoinWithDelimiter(IEnumerable<object> chunks)
+        private string JoinWithDelimiter(IEnumerable<object> chunks)
         {
             var sb = new StringBuilder();
 
             foreach (var c in chunks)
             {
                 if (sb.Length > 0)
-                    sb.Append(delimiter);
+                    sb.Append(_delimiter);
 
                 sb.Append(c);
             }
@@ -278,12 +281,12 @@ namespace AutoLineColor.Naming
 
         public override string ToString()
         {
-            return JoinWithDelimiter(parts);
+            return JoinWithDelimiter(Parts);
         }
 
         public override IEnumerable<string> GetShortenings()
         {
-            return ShortenAllPartsEachIteration(parts, JoinWithDelimiter);
+            return ShortenAllPartsEachIteration(Parts, JoinWithDelimiter);
         }
 
         public override IEnumerable<IChunk> GetVariants()
@@ -293,53 +296,56 @@ namespace AutoLineColor.Naming
 
         private DecayingListChunk CloneWithOtherParts(IChunk[] otherParts)
         {
-            return new DecayingListChunk(mode, otherParts, delimiter);
+            return new DecayingListChunk(_mode, _delimiter, otherParts);
         }
 
         private IEnumerable<IEnumerable<IChunk>> GetVariantsInner()
         {
             // try varying the items first
-            yield return VaryOnePartAtATime(parts, CloneWithOtherParts);
+            yield return VaryOnePartAtATime(Parts, CloneWithOtherParts);
 
-            switch (mode)
+            switch (_mode)
             {
                 case DecayMode.RespectEndpoints:
                     // drop parts one at a time, leaving the middle/first/last parts until the end
-                    yield return DecayPartsRespectingEndpoints(parts)
-                        .SelectMany(c => Enumerable.Concat(
-                            Enumerable.Repeat<IChunk>(CloneWithOtherParts(c), 1),
-                            VaryOnePartAtATime(c, CloneWithOtherParts)));
+                    yield return DecayPartsRespectingEndpoints(Parts)
+                        .SelectMany(c =>
+                            Enumerable.Repeat<IChunk>(CloneWithOtherParts(c), 1)
+                                .Concat(VaryOnePartAtATime(c, CloneWithOtherParts)));
                     break;
 
                 case DecayMode.RespectPriority:
                     // drop parts one at a time, leaving the earliest parts until the end
-                    yield return DecayPartsRespectingPriority(parts)
-                        .SelectMany(c => Enumerable.Concat(
-                            Enumerable.Repeat<IChunk>(CloneWithOtherParts(c), 1),
-                            VaryOnePartAtATime(c, CloneWithOtherParts)));
+                    yield return DecayPartsRespectingPriority(Parts)
+                        .SelectMany(c =>
+                            Enumerable.Repeat<IChunk>(CloneWithOtherParts(c), 1)
+                                .Concat(VaryOnePartAtATime(c, CloneWithOtherParts)));
                     break;
+
+                default:
+                    yield break;
             }
         }
 
+        // ReSharper disable once SuggestBaseTypeForParameter
         private static IEnumerable<IChunk[]> DecayPartsRespectingEndpoints(IChunk[] parts)
         {
             var logger = Console.Instance;
 
-            var temp = parts.ToArray();     // clone
-
-            if (temp.Length == 0)
+            if (parts.Length == 0)
             {
                 logger.Error("no parts to decay!");
                 yield break;
             }
 
-            int remaining = temp.Length;
-            int mid = temp.Length / 2;
-            int last = temp.Length - 1;
+            var temp = parts.ToArray(); // clone
+            var remaining = temp.Length;
+            var mid = temp.Length / 2;
+            var last = temp.Length - 1;
             int dropEarly = 1, dropLate = mid + 1;
-            bool early = true;
+            var early = true;
 
-            logger.Message(string.Format("decaying (endpoints): {0} items to start", remaining));
+            logger.Message($"decaying (endpoints): {remaining} items to start");
 
             while (true)
             {
@@ -349,26 +355,26 @@ namespace AutoLineColor.Naming
                     yield break;
                 }
 
-                bool canDropEarly = dropEarly > 0 && dropEarly < mid;
-                bool canDropLate = dropLate > mid && dropLate < last;
+                var canDropEarly = dropEarly > 0 && dropEarly < mid;
+                var canDropLate = dropLate > mid && dropLate < last;
 
                 if (canDropEarly && (early || !canDropLate))
                 {
-                    logger.Message(string.Format("early: dropping item {0}", dropEarly));
+                    logger.Message($"early: dropping item {dropEarly}");
                     temp[dropEarly] = null;
                     dropEarly++;
                     early = false;
                 }
-                else if (canDropLate && (!early || !canDropEarly))
+                else if (canDropLate)
                 {
-                    logger.Message(string.Format("late: dropping item {0}", dropLate));
+                    logger.Message($"late: dropping item {dropLate}");
                     temp[dropLate] = null;
                     dropLate++;
                     early = true;
                 }
                 else if (mid != 0 && mid != last && temp[mid] != null)
                 {
-                    logger.Message(string.Format("mid: dropping item {0}", mid));
+                    logger.Message($"mid: dropping item {mid}");
                     temp[mid] = null;
                 }
                 else if (temp[0] != null)
@@ -380,8 +386,8 @@ namespace AutoLineColor.Naming
                 {
                     // shouldn't get here
                     logger.Error("unexpected case!");
-                    Debug.Assert(false, "dropped parts too fast");
-                    break;
+                    Trace.Fail("dropped parts too fast");
+                    yield break;
                 }
 
                 remaining--;
@@ -390,21 +396,22 @@ namespace AutoLineColor.Naming
             }
         }
 
+        // ReSharper disable once SuggestBaseTypeForParameter
         private static IEnumerable<IChunk[]> DecayPartsRespectingPriority(IChunk[] parts)
         {
             var logger = Console.Instance;
 
-            var temp = parts.ToArray();     // clone
-
-            if (temp.Length == 0)
+            if (parts.Length == 0)
             {
                 logger.Error("no parts to decay!");
                 yield break;
             }
 
-            int remaining = temp.Length;
+            var temp = parts.ToArray(); // clone
 
-            logger.Message(string.Format("decaying (priority): {0} items to start", remaining));
+            var remaining = temp.Length;
+
+            logger.Message($"decaying (priority): {remaining} items to start");
 
             while (true)
             {
@@ -416,7 +423,7 @@ namespace AutoLineColor.Naming
                     yield break;
                 }
 
-                logger.Message(string.Format("decaying: returning first {0} items", remaining));
+                logger.Message($"decaying: returning first {remaining} items");
 
                 var result = new IChunk[remaining];
                 Array.Copy(temp, result, remaining);
@@ -425,21 +432,21 @@ namespace AutoLineColor.Naming
         }
     }
 
-    sealed class OptionalCosmeticChunk : IChunk
+    internal sealed class OptionalCosmeticChunk : IChunk
     {
         public static readonly OptionalCosmeticChunk Line = new OptionalCosmeticChunk(new StaticChunk(" Line"));
 
-        private readonly IChunk part;
+        private readonly IChunk _part;
 
-        public OptionalCosmeticChunk(IChunk part)
+        private OptionalCosmeticChunk(IChunk part)
         {
             Debug.Assert(part != null);
-            this.part = part;
+            this._part = part;
         }
 
         public override string ToString()
         {
-            return part.ToString();
+            return _part.ToString();
         }
 
         public IEnumerable<string> GetShortenings()
@@ -453,18 +460,18 @@ namespace AutoLineColor.Naming
         }
     }
 
-    abstract class StringChunk : IChunk
+    internal abstract class StringChunk : IChunk
     {
-        protected readonly string text;
+        protected readonly string Text;
 
-        public StringChunk(string text)
+        protected StringChunk(string text)
         {
-            this.text = text;
+            this.Text = text;
         }
 
         public override string ToString()
         {
-            return text;
+            return Text;
         }
 
         public abstract IEnumerable<string> GetShortenings();
@@ -472,7 +479,7 @@ namespace AutoLineColor.Naming
         public abstract IEnumerable<IChunk> GetVariants();
     }
 
-    sealed class StaticChunk : StringChunk
+    internal sealed class StaticChunk : StringChunk
     {
         public static readonly StaticChunk Via = new StaticChunk(" via ");
 
@@ -489,7 +496,7 @@ namespace AutoLineColor.Naming
         }
     }
 
-    enum AbbreviationMode
+    internal enum AbbreviationMode
     {
         Original,
         AbbreviateSuffix,
@@ -497,42 +504,47 @@ namespace AutoLineColor.Naming
         AutoShortenWords,
     }
 
-    class DistrictNameChunk : StringChunk
+    internal abstract class NameChunkBase : StringChunk
     {
-        protected AbbreviationMode mode;
+        private readonly AbbreviationMode _mode;
 
-        public DistrictNameChunk(string text) : this(text, AbbreviationMode.Original) { }
-
-        public DistrictNameChunk(string text, AbbreviationMode mode) : base(text)
+        protected NameChunkBase(string text, AbbreviationMode mode = AbbreviationMode.Original) : base(text)
         {
-            this.mode = mode;
+            this._mode = mode;
         }
 
         public override string ToString()
         {
-            switch (mode)
+            switch (_mode)
             {
                 case AbbreviationMode.AbbreviateSuffix:
-                    return text.AbbreviateDistrictSuffix();
+                    return AbbreviateSuffix();
 
                 case AbbreviationMode.StripSuffix:
-                    return text.StripDistrictSuffix();
+                    return StripSuffix();
 
                 case AbbreviationMode.AutoShortenWords:
-                    return text.StripDistrictSuffix().AutoShortenWords();
+                    return StripSuffixAndShortenWords();
+
+                case AbbreviationMode.Original:
+                    return Text;
 
                 default:
-                    return text;
+                    goto case AbbreviationMode.Original;
             }
         }
 
+        protected abstract string StripSuffixAndShortenWords();
+        protected abstract string StripSuffix();
+        protected abstract string AbbreviateSuffix();
+
         public override IEnumerable<string> GetShortenings()
         {
-            if (mode < AbbreviationMode.AbbreviateSuffix)
-                yield return text.AbbreviateDistrictSuffix();
+            if (_mode < AbbreviationMode.AbbreviateSuffix)
+                yield return AbbreviateSuffix();
 
-            if (mode < AbbreviationMode.StripSuffix)
-                yield return text.StripDistrictSuffix();
+            if (_mode < AbbreviationMode.StripSuffix)
+                yield return StripSuffix();
         }
 
         public override IEnumerable<IChunk> GetVariants()
@@ -541,47 +553,47 @@ namespace AutoLineColor.Naming
         }
     }
 
-    class RoadNameChunk : StringChunk
+    internal class DistrictNameChunk : NameChunkBase
     {
-        protected AbbreviationMode mode;
-
-        public RoadNameChunk(string text) : this(text, AbbreviationMode.Original) { }
-
-        public RoadNameChunk(string text, AbbreviationMode mode) : base(text)
+        public DistrictNameChunk(string text, AbbreviationMode mode = AbbreviationMode.Original) : base(text, mode)
         {
-            this.mode = mode;
         }
 
-        public override string ToString()
+        protected override string StripSuffixAndShortenWords()
         {
-            switch (mode)
-            {
-                case AbbreviationMode.AbbreviateSuffix:
-                    return text.AbbreviateRoadSuffix();
-
-                case AbbreviationMode.StripSuffix:
-                    return text.StripRoadSuffix();
-
-                case AbbreviationMode.AutoShortenWords:
-                    return text.StripRoadSuffix().AutoShortenWords();
-
-                default:
-                    return text;
-            }
+            return Text.StripDistrictSuffix().AutoShortenWords();
         }
 
-        public override IEnumerable<string> GetShortenings()
+        protected override string StripSuffix()
         {
-            if (mode < AbbreviationMode.AbbreviateSuffix)
-                yield return text.AbbreviateRoadSuffix();
-
-            if (mode < AbbreviationMode.StripSuffix)
-                yield return text.StripRoadSuffix();
+            return Text.StripDistrictSuffix();
         }
 
-        public override IEnumerable<IChunk> GetVariants()
+        protected override string AbbreviateSuffix()
         {
-            yield break;
+            return Text.AbbreviateDistrictSuffix();
+        }
+    }
+
+    internal class RoadNameChunk : NameChunkBase
+    {
+        public RoadNameChunk(string text, AbbreviationMode mode = AbbreviationMode.Original) : base(text, mode)
+        {
+        }
+
+        protected override string StripSuffixAndShortenWords()
+        {
+            return Text.StripRoadSuffix().AutoShortenWords();
+        }
+
+        protected override string StripSuffix()
+        {
+            return Text.StripRoadSuffix();
+        }
+
+        protected override string AbbreviateSuffix()
+        {
+            return Text.AbbreviateRoadSuffix();
         }
     }
 }

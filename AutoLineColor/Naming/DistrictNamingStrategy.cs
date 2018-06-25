@@ -1,15 +1,9 @@
-using System;
-using System.Collections.Generic;
-using ColossalFramework;
-using ColossalFramework.Plugins;
 using Random = UnityEngine.Random;
 
 namespace AutoLineColor.Naming
 {
     internal class DistrictNamingStrategy : NamingStrategyBase
     {
-        private static Console logger = Console.Instance;
-
         // todo could this be localized?
 
         protected override string GetTrainLineName(TransportLine transportLine)
@@ -17,53 +11,44 @@ namespace AutoLineColor.Naming
             var analysis = AnalyzeLine(transportLine);
             var lineNumber = transportLine.m_lineNumber;
             var districts = analysis.Districts;
-            var stopCount = analysis.StopCount;
 
-            if (districts.Count == 1)
+            switch (districts.Count)
             {
-                if (districts[0] == string.Empty)
-                {
-                    return string.Format("#{0} {1} Shuttle", lineNumber, districts[0]);
-                }
+                case 1 when analysis.HasNonDistrictStop:
+                    return $"#{lineNumber} {districts[0]} Shuttle";
 
-                var rnd = Random.value;
-                if (rnd <= .33f)
-                {
-                    return string.Format("#{0} {1} Limited", lineNumber, districts[0]);
-                }
+                case 1:
+                    switch (Random.value)
+                    {
+                        case float f when f <= .33f:
+                            return $"#{lineNumber} {districts[0]} Limited";
 
-                if (rnd <= .66f)
-                {
-                    return string.Format("#{0} {1} Service", lineNumber, districts[0]);
-                }
+                        case float f when f <= .66f:
+                            return $"#{lineNumber} {districts[0]} Service";
 
-                return string.Format("#{0} {1} Shuttle", lineNumber, districts[0]);
+                        default:
+                            return $"#{lineNumber} {districts[0]} Shuttle";
+                    }
+
+                case 2:
+                    switch (Random.value)
+                    {
+                        case float f when f <= .33f:
+                            return $"#{lineNumber} {districts[0].Substring(0, 1)}&{districts[1].Substring(0, 1)}";
+
+                        case float f when f <= .5f:
+                            return $"#{lineNumber} {districts[0].Substring(0, 1)} Zephr";
+
+                        case float f when f <= .7f:
+                            return $"#{lineNumber} {districts[0].Substring(0, 1)} Flyer";
+
+                        default:
+                            return $"#{lineNumber} {districts[0]} & {districts[1]}";
+                    }
+
+                default:
+                    return $"#{lineNumber} Unlimited";
             }
-            if (districts.Count == 2)
-            {
-                if (string.IsNullOrEmpty(districts[0]) || string.IsNullOrEmpty(districts[1]))
-                {
-                    return string.Format("#{0} {1} Shuttle", lineNumber, districts[0]);
-                }
-
-                var rnd = Random.value;
-                if (rnd <= .33f)
-                {
-                    return string.Format("#{0} {1}&{2}", lineNumber, districts[0].Substring(0, 1),
-                        districts[1].Substring(0, 1));
-                }
-                if (rnd <= .5)
-                {
-                    return string.Format("#{0} {1} Zephr", lineNumber, districts[0].Substring(0, 1));
-                }
-                if (rnd <= .7)
-                {
-                    return string.Format("#{0} {1} Flyer", lineNumber, districts[0].Substring(0, 1));
-                }
-                return string.Format("#{0} {1} & {2}", lineNumber, districts[0], districts[1]);
-            }
-
-            return string.Format("#{0} Unlimited", lineNumber);
         }
 
         protected override string GetBusLineName(TransportLine transportLine)
@@ -73,27 +58,20 @@ namespace AutoLineColor.Naming
             var districts = analysis.Districts;
             var stopCount = analysis.StopCount;
 
-            if (districts.Count == 1)
+            switch (districts.Count)
             {
-                if (string.IsNullOrEmpty(districts[0]))
-                {
-                    return string.Format("#{0} Line", lineNumber);
-                }
+                case 1:
+                    return $"#{lineNumber} {districts[0]} Local";
 
-                return string.Format("#{0} {1} Local", lineNumber, districts[0]);
+                case 2 when stopCount <= 4:
+                    return $"#{lineNumber} {districts[0]} / {districts[1]} Express";
+
+                case 2:
+                    return $"#{lineNumber} {districts[0]} / {districts[1]} Line";
+
+                default:
+                    return $"#{lineNumber} Line";
             }
-
-            if (districts.Count == 2 && string.IsNullOrEmpty(districts[0]) && string.IsNullOrEmpty(districts[1]))
-                return string.Format("#{0} Line", lineNumber);
-
-
-            if (districts.Count == 2 && stopCount <= 4)
-                return string.Format("#{0} {1} / {2} Express", lineNumber, districts[0], districts[1]);
-
-            if (districts.Count == 2)
-                return string.Format("#{0} {1} / {2} Line", lineNumber, districts[0], districts[1]);
-
-            return string.Format("#{0} Line", lineNumber);
         }
 
         protected override string GetMetroLineName(TransportLine transportLine)
@@ -103,7 +81,7 @@ namespace AutoLineColor.Naming
 
         protected override string GetGenericLineName(TransportLine transportLine)
         {
-            return string.Format("#{0} Line", transportLine.m_lineNumber);
+            return $"#{transportLine.m_lineNumber} Line";
         }
     }
 }

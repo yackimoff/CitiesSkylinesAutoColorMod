@@ -2,14 +2,14 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using ColossalFramework;
-using ColossalFramework.Plugins;
+using JetBrains.Annotations;
 using Random = UnityEngine.Random;
 
 namespace AutoLineColor.Naming
 {
     internal class LondonNamingStrategy : NamingStrategyBase
     {
-        private static string[] _trains =
+        private static readonly string[] Trains =
         {
             "{0}",
             "{0} Service",
@@ -24,29 +24,21 @@ namespace AutoLineColor.Naming
             "Pride of {0}",
         };
 
-
-
-        private static List<string> GetNumbers(List<string> names)
+        // TODO: return HashSet<string>, since this is only used to check uniqueness
+        private static List<string> GetNumbers([NotNull] IEnumerable<string> names)
         {
-            var numbers = new List<string>();
-            foreach (var name in names)
-            {
-                numbers.Add(name.FirstWord());
-            }
-            return numbers;
+            return names.Select(name => name.FirstWord()).ToList();
         }
-
-
 
         private static string TryBakerlooify(string word1, string word2)
         {
-            int offset1 = Math.Min(word1.Length - 1, Math.Max(word1.Length / 2, 4));
-            int offset2 = word2.Length / 4;
-            int length2 = Math.Max(word2.Length / 2, 3);
+            var offset1 = Math.Min(word1.Length - 1, Math.Max(word1.Length / 2, 4));
+            var offset2 = word2.Length / 4;
+            var length2 = Math.Max(word2.Length / 2, 3);
 
-            string substring2 = word2.Substring(offset2, length2);
+            var substring2 = word2.Substring(offset2, length2);
 
-            for (int offset = offset1; offset < word1.Length; offset++)
+            for (var offset = offset1; offset < word1.Length; offset++)
             {
                 if (substring2.IndexOf(word1[offset]) >= 0)
                 {
@@ -73,7 +65,7 @@ namespace AutoLineColor.Naming
             var analysis = AnalyzeLine(transportLine);
             string prefix = null;
             int number;
-            string name = null;
+            string name;
             string suffix = null;
             var existingNames = GetExistingNames();
             var existingNumbers = GetNumbers(existingNames);
@@ -88,7 +80,7 @@ namespace AutoLineColor.Naming
                 do
                 {
                     number++;
-                    prefixed_number = String.Format("{0}{1}", prefix, number);
+                    prefixed_number = $"{prefix}{number}";
                 } while (existingNumbers.Contains(prefixed_number));
             }
             else
@@ -123,12 +115,12 @@ namespace AutoLineColor.Naming
                     break;
 
                 case 2:
-                    name = String.Format("{0} to {1}", analysis.Districts[0].FirstWord(), analysis.Districts[1].FirstWord());
+                    name = $"{analysis.Districts[0].FirstWord()} to {analysis.Districts[1].FirstWord()}";
                     break;
 
                 case 3:
-                    name = String.Format("{0}, {1} and {2}",
-                        analysis.Districts[0].FirstWord(), analysis.Districts[1].FirstWord(), analysis.Districts[2].FirstWord());
+                    name =
+                        $"{analysis.Districts[0].FirstWord()}, {analysis.Districts[1].FirstWord()} and {analysis.Districts[2].FirstWord()}";
                     break;
 
                 default:
@@ -142,12 +134,12 @@ namespace AutoLineColor.Naming
                 suffix = "Express";
             }
 
-            string lineName = String.Format("{0}{1}", prefix ?? "", number);
-            if (!String.IsNullOrEmpty(name))
+            var lineName = $"{prefix ?? ""}{number}";
+            if (!string.IsNullOrEmpty(name))
             {
                 lineName += " " + name;
             }
-            if (!String.IsNullOrEmpty(suffix))
+            if (!string.IsNullOrEmpty(suffix))
             {
                 lineName += " " + suffix;
             }
@@ -174,7 +166,7 @@ namespace AutoLineColor.Naming
             string name = null;
             var districtFirstNames = analysis.Districts.Select(StringExtensions.FirstWord).ToList();
             var existingNames = GetExistingNames();
-            int count = 0;
+            var count = 0;
 
             switch (analysis.Districts.Count)
             {
@@ -194,28 +186,27 @@ namespace AutoLineColor.Naming
                     else
                     {
                         name = TryBakerlooify(districtFirstNames[0], districtFirstNames[1]) ??
-                            TryBakerlooify(districtFirstNames[1], districtFirstNames[0]) ??
-                            String.Format("{0} & {1}", districtFirstNames[0], districtFirstNames[1]);
+                               TryBakerlooify(districtFirstNames[1], districtFirstNames[0]) ??
+                               $"{districtFirstNames[0]} & {districtFirstNames[1]}";
                     }
                     break;
 
                 default:
-                    int totalLength = districtFirstNames.Sum(d => d.Length);
+                    var totalLength = districtFirstNames.Sum(d => d.Length);
                     if (totalLength < 20)
                     {
                         var districtFirstNamesArray = districtFirstNames.ToArray();
-                        name = String.Format("{0} & {1}",
-                            String.Join(", ", districtFirstNamesArray, 0, districtFirstNamesArray.Length - 1),
-                            districtFirstNamesArray[districtFirstNamesArray.Length - 1]);
+                        name =
+                            $"{string.Join(", ", districtFirstNamesArray, 0, districtFirstNamesArray.Length - 1)} & {districtFirstNamesArray[districtFirstNamesArray.Length - 1]}";
                     }
                     break;
             }
 
-            var lineName = name == null ? "Metro Line" : String.Format("{0} Line", name);
+            var lineName = name == null ? "Metro Line" : $"{name} Line";
             while (name == null || existingNames.Contains(lineName))
             {
                 name = GenericNames.GetGenericName(count / 2);
-                lineName = String.Format("{0} Line", name);
+                lineName = $"{name} Line";
                 count++;
             }
             return lineName;
@@ -236,30 +227,30 @@ namespace AutoLineColor.Naming
         protected override string GetTrainLineName(TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
-            string ident = null;
-            int number = Random.Range(1, 90);
-            string name = null;
+            var number = Random.Range(1, 90);
+            string name;
             var districtFirstNames = analysis.Districts.Select(StringExtensions.FirstWord).ToList();
             var existingNames = GetExistingNames();
             var existingNumbers = GetNumbers(existingNames);
 
             var lastDistrictName = analysis.Districts.LastOrDefault();
-            if (String.IsNullOrEmpty(lastDistrictName))
+            if (string.IsNullOrEmpty(lastDistrictName))
             {
                 lastDistrictName = "Z";
             }
 
-            ident = String.Format("{0}{1}", analysis.Districts.Count, analysis.HasNonDistrictStop ? "X" : lastDistrictName.Substring(0, 1));
+            var ident =
+                $"{analysis.Districts.Count}{(analysis.HasNonDistrictStop ? "X" : lastDistrictName.Substring(0, 1))}";
 
             switch (analysis.Districts.Count)
             {
                 case 0:
                     var theSimulationManager = Singleton<SimulationManager>.instance;
-                    name = String.Format(_trains[Random.Range(0, _trains.Length)], theSimulationManager.m_metaData.m_CityName);
+                    name = string.Format(Trains[Random.Range(0, Trains.Length)], theSimulationManager.m_metaData.m_CityName);
                     break;
 
                 case 1:
-                    name = String.Format(_trains[Random.Range(0, _trains.Length)], analysis.Districts[0]);
+                    name = string.Format(Trains[Random.Range(0, Trains.Length)], analysis.Districts[0]);
                     break;
 
                 case 2:
@@ -269,42 +260,40 @@ namespace AutoLineColor.Naming
                     }
                     else if (analysis.StopCount == 2)
                     {
-                        name = String.Format("{0} {1} Shuttle", districtFirstNames[0], districtFirstNames[1]);
+                        name = $"{districtFirstNames[0]} {districtFirstNames[1]} Shuttle";
                     }
                     else if (!analysis.HasNonDistrictStop)
                     {
-                        name = String.Format("{0} {1} Express", districtFirstNames[0], districtFirstNames[1]);
+                        name = $"{districtFirstNames[0]} {districtFirstNames[1]} Express";
                     }
                     else
                     {
-                        name = String.Format("{0} via {1}", districtFirstNames[0], districtFirstNames[1]);
+                        name = $"{districtFirstNames[0]} via {districtFirstNames[1]}";
                     }
                     break;
 
                 default:
-                    int totalLength = districtFirstNames.Sum(d => d.Length);
+                    var totalLength = districtFirstNames.Sum(d => d.Length);
                     if (totalLength < 15)
                     {
                         var districtFirstNamesArray = districtFirstNames.ToArray();
-                        name = String.Format("{0} and {1} via {2}",
-                            String.Join(", ", districtFirstNamesArray, 0, districtFirstNamesArray.Length - 2),
-                            districtFirstNamesArray[districtFirstNamesArray.Length - 1],
-                            districtFirstNamesArray[districtFirstNamesArray.Length - 2]);
+                        name =
+                            $"{string.Join(", ", districtFirstNamesArray, 0, districtFirstNamesArray.Length - 2)} and {districtFirstNamesArray[districtFirstNamesArray.Length - 1]} via {districtFirstNamesArray[districtFirstNamesArray.Length - 2]}";
                     }
                     else
                     {
-                        name = String.Format(_trains[Random.Range(0, _trains.Length)], analysis.Districts[0]);
+                        name = string.Format(Trains[Random.Range(0, Trains.Length)], analysis.Districts[0]);
                     }
                     break;
             }
 
-            var lineNumber = String.Format("{0}{1:00}", ident, number);
+            var lineNumber = $"{ident}{number:00}";
             while (existingNumbers.Contains(lineNumber))
             {
                 number++;
-                lineNumber = String.Format("{0}{1:00}", ident, number);
+                lineNumber = $"{ident}{number:00}";
             }
-            return String.Format("{0} {1}", lineNumber, name);
+            return $"{lineNumber} {name}";
         }
     }
 }

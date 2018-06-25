@@ -1,14 +1,17 @@
 ﻿using ColossalFramework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using JetBrains.Annotations;
 
 namespace AutoLineColor.Naming
 {
-    struct LineAnalysis
+    internal struct LineAnalysis
     {
         public int StopCount;
+        [NotNull, ItemNotNull]
         public List<string> Districts;
         public bool HasNonDistrictStop;
 
@@ -18,13 +21,14 @@ namespace AutoLineColor.Naming
         public Dictionary<string, float> DistanceOnSegments;
     }
 
-    abstract class NamingStrategyBase : INamingStrategy
+    [SuppressMessage("ReSharper", "VirtualMemberNeverOverridden.Global")]
+    internal abstract class NamingStrategyBase : INamingStrategy
     {
         public string GetName(TransportLine transportLine)
         {
             try
             {
-                string result = null;
+                string result;
 
                 switch (transportLine.Info.m_transportType)
                 {
@@ -59,6 +63,18 @@ namespace AutoLineColor.Naming
                     case TransportInfo.TransportType.Airplane:
                         result = GetBlimpLineName(transportLine);
                         break;
+
+                    case TransportInfo.TransportType.Taxi:
+                    case TransportInfo.TransportType.EvacuationBus:
+                    case TransportInfo.TransportType.HotAirBalloon:
+                    case TransportInfo.TransportType.TouristBus:
+                    case TransportInfo.TransportType.Pedestrian:
+                        // TODO: handle more line types
+                        goto default;
+
+                    default:
+                        result = null;
+                        break;
                 }
 
                 return result ?? GetGenericLineName(transportLine);
@@ -90,6 +106,7 @@ namespace AutoLineColor.Naming
             return null;
         }
 
+        // ReSharper disable once UnusedParameter.Global
         protected virtual string GetCableCarLineName(TransportLine transportLine)
         {
             return null;
@@ -170,8 +187,7 @@ namespace AutoLineColor.Naming
 
                             var length = theNetManager.m_segments.m_buffer[segment].m_averageLength;
 
-                            float curLength;
-                            if (result.DistanceOnSegments.TryGetValue(name, out curLength))
+                            if (result.DistanceOnSegments.TryGetValue(name, out var curLength))
                             {
                                 result.DistanceOnSegments[name] = curLength + length;
                             }
@@ -231,35 +247,31 @@ namespace AutoLineColor.Naming
             var thePathManager = Singleton<PathManager>.instance;
 
             var unit = thePathManager.m_pathUnits.m_buffer[pathUnit];
-            PathUnit.Position position;
 
-            if (!unit.GetPosition(0, out position))
+            if (!unit.GetPosition(0, out var position))
                 yield break;
 
-            int posIndex = 0;
-            bool invalid;
+            var posIndex = 0;
 
             do
             {
                 yield return position;
-            } while (PathUnit.GetNextPosition(ref pathUnit, ref posIndex, out position, out invalid));
+            } while (PathUnit.GetNextPosition(ref pathUnit, ref posIndex, out position, out _));
         }
 
         protected static List<string> GetExistingNames()
         {
             var names = new List<string>();
             var theTransportManager = Singleton<TransportManager>.instance;
-            var theInstanceManager = Singleton<InstanceManager>.instance;
             var lines = theTransportManager.m_lines.m_buffer;
             for (ushort lineIndex = 0; lineIndex < lines.Length - 1; lineIndex++)
             {
-                if (lines[lineIndex].HasCustomName())
+                if (!lines[lineIndex].HasCustomName())
+                    continue;
+                var name = theTransportManager.GetLineName(lineIndex);
+                if (!string.IsNullOrEmpty(name))
                 {
-                    string name = theTransportManager.GetLineName(lineIndex);
-                    if (!String.IsNullOrEmpty(name))
-                    {
-                        names.Add(name);
-                    }
+                    names.Add(name);
                 }
             }
             return names;
@@ -270,8 +282,8 @@ namespace AutoLineColor.Naming
     {
         public static string GetInitials(this string words)
         {
-            string initials = words[0].ToString();
-            for (int i = 0; i < words.Length - 1; i++)
+            var initials = words[0].ToString();
+            for (var i = 0; i < words.Length - 1; i++)
             {
                 if (words[i] == ' ')
                 {
@@ -287,18 +299,19 @@ namespace AutoLineColor.Naming
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
 
-        public static string LastWord(this string words)
+        private static string LastWord(this string words)
         {
             var pos = words.LastIndexOf(' ');
             return pos >= 0 ? words.Substring(pos + 1) : words;
         }
 
-        public static string AllButLastWord(this string words)
+        private static string AllButLastWord(this string words)
         {
             var pos = words.LastIndexOf(' ');
             return pos >= 0 ? words.Substring(0, pos) : words;
         }
 
+        // TODO: refactor district/road suffix methods
         public static string StripDistrictSuffix(this string name)
         {
             return name.AllButLastWord();
@@ -353,28 +366,28 @@ namespace AutoLineColor.Naming
          * https://pe.usps.com/text/pub28/28apc_002.htm */
         private static readonly Dictionary<string, string> RoadSuffixAbbreviations =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "Alley", "Aly" },
-            { "Avenue", "Ave" },
-            { "Boulevard", "Blvd" },
-            { "Bridge", "Br" },
-            { "Circle", "Cir" },
-            { "Court", "Ct" },
-            { "Crossing", "Xing" },
-            { "Drive", "Dr" },
-            { "Expressway", "Expy" },
-            { "Freeway", "Fwy" },
-            { "Highway", "Hwy" },
-            { "Junction", "Jct" },
-            { "Lane", "Ln" },
-            { "Parkway", "Pkwy" },
-            { "Road", "Rd" },
-            { "Station", "Stn" },
-            { "Street", "St" },
-            { "Track", "Trk" },
-            { "Tunnel", "Tunl" },
-            { "Way", "Wy" },
-        };
+            {
+                { "Alley", "Aly" },
+                { "Avenue", "Ave" },
+                { "Boulevard", "Blvd" },
+                { "Bridge", "Br" },
+                { "Circle", "Cir" },
+                { "Court", "Ct" },
+                { "Crossing", "Xing" },
+                { "Drive", "Dr" },
+                { "Expressway", "Expy" },
+                { "Freeway", "Fwy" },
+                { "Highway", "Hwy" },
+                { "Junction", "Jct" },
+                { "Lane", "Ln" },
+                { "Parkway", "Pkwy" },
+                { "Road", "Rd" },
+                { "Station", "Stn" },
+                { "Street", "St" },
+                { "Track", "Trk" },
+                { "Tunnel", "Tunl" },
+                { "Way", "Wy" },
+            };
 
         public static string AbbreviateRoadSuffix(this string name)
         {
@@ -383,8 +396,7 @@ namespace AutoLineColor.Naming
 
             var suffix = LastWord(name);
 
-            string abbrev;
-            if (!RoadSuffixAbbreviations.TryGetValue(suffix, out abbrev))
+            if (!RoadSuffixAbbreviations.TryGetValue(suffix, out var abbrev))
                 abbrev = AutoShorten(suffix).Substring(0, 3);
 
             return AllButLastWord(name) + " " + abbrev;
@@ -405,14 +417,15 @@ namespace AutoLineColor.Naming
         /// <para>The first character is always preserved, even if it's a vowel.</para>
         /// <para>It was hard to resist the temptation to call this <c>Abrvt</c>.</para>
         /// </remarks>
-        public static string AutoShorten(this string word)
+        private static string AutoShorten(this string word)
         {
             var sb = new StringBuilder(word);
 
-            for (int i = sb.Length - 1; i > 0; i--)
+            for (var i = sb.Length - 1; i > 0; i--)
             {
-                if (Vowels.Contains(sb[i]) || sb[i] == sb[i - 1] ||
-                    (sb[i] == 'c' && i + 1 < sb.Length && sb[i + 1] == 'k'))
+                if (Vowels.Contains(sb[i]) ||
+                    sb[i] == sb[i - 1] ||
+                    sb[i] == 'c' && i + 1 < sb.Length && sb[i + 1] == 'k')
                 {
                     sb.Remove(i, 1);
                 }
@@ -427,7 +440,7 @@ namespace AutoLineColor.Naming
         {
             var split = words.Split(SpaceDelimiter);
 
-            for (int i = 0; i < split.Length; i++)
+            for (var i = 0; i < split.Length; i++)
                 split[i] = split[i].AutoShorten();
 
             return string.Join(" ", split);

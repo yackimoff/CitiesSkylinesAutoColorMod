@@ -6,9 +6,5 @@
         {
             return null;
         }
-
-        public NamingStrategy GetStrategy() {
-            return NamingStrategy.None;
-        }
     }
 }
