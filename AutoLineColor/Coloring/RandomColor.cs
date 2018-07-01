@@ -89,6 +89,7 @@ namespace AutoLineColor.Coloring
                 //Only use alpha if the string has enough characters
                 if (hex.Length == 8)
                 {
+                    // TODO: this is wrong
                     alpha = byte.Parse(hex.Substring(4, 2), NumberStyles.HexNumber);
                 }
 
@@ -162,6 +163,7 @@ namespace AutoLineColor.Coloring
 
         private static double CompareColors(Color32 color1, Color32 color2)
         {
+            // TODO: use HSV instead of RGB, or CMC(I:c) color difference algorithm
             var r1 = color1.r;
             var r2 = color2.r;
             var g1 = color1.g;
@@ -169,6 +171,7 @@ namespace AutoLineColor.Coloring
             var b1 = color1.b;
             var b2 = color2.b;
 
+            // TODO: use UnityEngine.Vector3 here?
             var d = Math.Sqrt(Math.Abs(Math.Pow(r2 - r1, 2) + Math.Pow(g2 - g1, 2) + Math.Pow(b2 - b1, 2)));
             var p = d / Math.Sqrt(255 * 255 * 3);
 
