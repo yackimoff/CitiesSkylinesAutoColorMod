@@ -13,7 +13,7 @@ namespace AutoLineColor
         public int? MinColorDiffPercentage { get; private set; }
         public int? MaxDiffColorPickAttempt { get; private set; }
 
-        [NonSerialized]
+        [XmlIgnore]
         public volatile bool UndigestedChanges;
 
         //Staged changes. These are not applied until 'Save' is clicked
