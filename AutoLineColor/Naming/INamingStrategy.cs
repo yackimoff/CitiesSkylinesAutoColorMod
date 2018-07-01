@@ -5,6 +5,6 @@ namespace AutoLineColor.Naming
     internal interface INamingStrategy
     {
         [CanBeNull]
-        string GetName(TransportLine transportLine);
+        string GetName(in TransportLine transportLine);
     }
 }

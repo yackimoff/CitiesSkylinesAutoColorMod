@@ -24,7 +24,7 @@ namespace AutoLineColor.Naming
     [SuppressMessage("ReSharper", "VirtualMemberNeverOverridden.Global")]
     internal abstract class NamingStrategyBase : INamingStrategy
     {
-        public string GetName(TransportLine transportLine)
+        public string GetName(in TransportLine transportLine)
         {
             try
             {
@@ -86,53 +86,53 @@ namespace AutoLineColor.Naming
             }
         }
 
-        protected virtual string GetGenericLineName(TransportLine transportLine)
+        protected virtual string GetGenericLineName(in TransportLine transportLine)
         {
             return null;
         }
 
-        protected virtual string GetBusLineName(TransportLine transportLine)
+        protected virtual string GetBusLineName(in TransportLine transportLine)
         {
             return null;
         }
 
-        protected virtual string GetTrainLineName(TransportLine transportLine)
+        protected virtual string GetTrainLineName(in TransportLine transportLine)
         {
             return null;
         }
 
-        protected virtual string GetMetroLineName(TransportLine transportLine)
+        protected virtual string GetMetroLineName(in TransportLine transportLine)
         {
             return null;
         }
 
         // ReSharper disable once UnusedParameter.Global
-        protected virtual string GetCableCarLineName(TransportLine transportLine)
+        protected virtual string GetCableCarLineName(in TransportLine transportLine)
         {
             return null;
         }
 
-        protected virtual string GetTramLineName(TransportLine transportLine)
+        protected virtual string GetTramLineName(in TransportLine transportLine)
         {
             return GetBusLineName(transportLine);
         }
 
-        protected virtual string GetShipLineName(TransportLine transportLine)
+        protected virtual string GetShipLineName(in TransportLine transportLine)
         {
             return GetTrainLineName(transportLine);
         }
 
-        protected virtual string GetMonorailLineName(TransportLine transportLine)
+        protected virtual string GetMonorailLineName(in TransportLine transportLine)
         {
             return GetTrainLineName(transportLine);
         }
 
-        protected virtual string GetBlimpLineName(TransportLine transportLine)
+        protected virtual string GetBlimpLineName(in TransportLine transportLine)
         {
             return GetShipLineName(transportLine);
         }
 
-        protected static LineAnalysis AnalyzeLine(TransportLine transportLine)
+        protected static LineAnalysis AnalyzeLine(in TransportLine transportLine)
         {
             var theNetManager = Singleton<NetManager>.instance;
             var theDistrictManager = Singleton<DistrictManager>.instance;
@@ -312,6 +312,7 @@ namespace AutoLineColor.Naming
         }
 
         // TODO: refactor district/road suffix methods
+        // TODO: strip or abbreviate prefix too ("The Valley" -> "Valley", "East Palo Alto" -> "E Palo Alto")
         public static string StripDistrictSuffix(this string name)
         {
             return name.AllButLastWord();

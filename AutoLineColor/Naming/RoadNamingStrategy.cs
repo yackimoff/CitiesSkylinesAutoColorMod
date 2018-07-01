@@ -21,7 +21,7 @@ namespace AutoLineColor.Naming
 
     internal class RoadNamingStrategy : NamingStrategyBase
     {
-        protected override string GetGenericLineName(TransportLine transportLine)
+        protected override string GetGenericLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             var lineNum = transportLine.m_lineNumber;

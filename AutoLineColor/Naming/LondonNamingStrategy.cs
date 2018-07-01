@@ -60,7 +60,7 @@ namespace AutoLineColor.Naming
          * 6 Springwood Express
          */
 
-        protected override string GetBusLineName(TransportLine transportLine)
+        protected override string GetBusLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             string prefix = null;
@@ -160,7 +160,7 @@ namespace AutoLineColor.Naming
          * There's also some attempt to "Bakerlooify" line names.  No idea how well that will work.
          */
 
-        protected override string GetMetroLineName(TransportLine transportLine)
+        protected override string GetMetroLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             string name = null;
@@ -224,7 +224,7 @@ namespace AutoLineColor.Naming
          * The name is based on the district names.
          */
 
-        protected override string GetTrainLineName(TransportLine transportLine)
+        protected override string GetTrainLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             var number = Random.Range(1, 90);

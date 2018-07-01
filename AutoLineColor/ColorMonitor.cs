@@ -23,6 +23,9 @@ namespace AutoLineColor
         private List<Color32> _usedColors;
         private Configuration _config;
 
+        [CanBeNull]
+        public static ColorMonitor Instance { get; private set; }
+
         public override void OnCreated(IThreading threading)
         {
             Logger.Message("===============================");
@@ -42,9 +45,18 @@ namespace AutoLineColor
             Logger.Message("Found naming strategy of " + _config.NamingStrategy);
 
             _initialized = true;
+            Instance = this;
 
             Logger.Message("done creating");
             base.OnCreated(threading);
+        }
+
+        public override void OnReleased()
+        {
+            _initialized = false;
+            Instance = null;
+
+            base.OnReleased();
         }
 
         private static INamingStrategy SetNamingStrategy(NamingStrategy namingStrategy)
@@ -121,6 +133,9 @@ namespace AutoLineColor
                 return;
             }
 
+            if (theSimulationManager.SimulationPaused)
+                return;
+
             var locked = false;
 
             try
@@ -136,39 +151,7 @@ namespace AutoLineColor
 
                 for (ushort i = 0; i < lines.Length - 1; i++)
                 {
-                    var transportLine = lines[i];
-                    //logger.Message(string.Format("Starting on line {0}", i));
-
-                    if (transportLine.m_flags == TransportLine.Flags.None)
-                        continue;
-
-                    if (!transportLine.Complete)
-                        continue;
-
-                    // only worry about fully created lines
-                    if (!transportLine.IsActive() || transportLine.HasCustomName() || !transportLine.m_color.IsDefaultColor())
-                        continue;
-
-                    Logger.Message($"Working on line {i}");
-
-                    var lineName = theTransportManager.GetLineName(i);
-                    var newName = _namingStrategy.GetName(transportLine);
-
-                    if (!transportLine.HasCustomColor() || transportLine.m_color.IsDefaultColor())
-                    {
-                        var color = _colorStrategy.GetColor(transportLine, _usedColors);
-
-                        Logger.Message($"Changing line {i} color from {theTransportManager.GetLineColor(i)} to {color}");
-
-                        theSimulationManager.AddAction(theTransportManager.SetLineColor(i, color));
-                    }
-
-                    if (string.IsNullOrEmpty(newName) || transportLine.HasCustomName())
-                        continue;
-
-                    Logger.Message($"Changing line {i} name from '{lineName}' to '{newName}'");
-
-                    theSimulationManager.AddAction(theTransportManager.SetLineName(i, newName));
+                    ProcessLine(i, lines[i], false, theSimulationManager, theTransportManager);
                 }
             }
             catch (Exception ex)
@@ -183,45 +166,133 @@ namespace AutoLineColor
                 }
             }
         }
+
+        public void ForceRefreshLine(ushort lineId)
+        {
+            Logger.Message($"Force refresh for line {lineId}");
+
+            if (!Singleton<TransportManager>.exists || !Singleton<SimulationManager>.exists)
+            {
+                Logger.Error($"Skipping force refresh for line {lineId} because managers are missing");
+                return;
+            }
+
+            try
+            {
+                var theTransportManager = Singleton<TransportManager>.instance;
+                var theSimulationManager = Singleton<SimulationManager>.instance;
+                var lines = theTransportManager.m_lines.m_buffer;
+
+                if (!Monitor.TryEnter(lines, SimulationManager.SYNCHRONIZE_TIMEOUT))
+                {
+                    Logger.Error($"Skipping force refresh for line {lineId} because lines are locked");
+                    return;
+                }
+
+                try
+                {
+                    ProcessLine(lineId, lines[lineId], true, theSimulationManager, theTransportManager);
+                }
+                finally
+                {
+                    Monitor.Exit(lines);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex.ToString());
+            }
+        }
+
+        private void ProcessLine(ushort lineId, in TransportLine transportLine, bool forceUpdate, SimulationManager theSimulationManager,
+            TransportManager theTransportManager)
+        {
+            //logger.Message(string.Format("Starting on line {0}", num));
+
+            if (transportLine.m_flags == TransportLine.Flags.None)
+                return;
+
+            if (!transportLine.IsComplete())
+                return;
+
+            // only worry about fully created lines
+            if (!transportLine.IsActive())
+                return;
+
+            // only worry about newly created lines, unless forcing the update
+            var updateColor = forceUpdate || !transportLine.HasCustomColor(); // && transportLine.m_color.IsDefaultColor();
+            var updateName = forceUpdate || !transportLine.HasCustomName();
+
+            if (!updateColor && !updateName)
+                return;
+
+            Logger.Message($"Working on line {lineId} (m_flags={transportLine.m_flags} m_color={transportLine.m_color})");
+
+            if (updateColor)
+            {
+                var color = _colorStrategy.GetColor(transportLine, _usedColors);
+                var currentColor = (Color32)theTransportManager.GetLineColor(lineId);
+
+                Logger.Message($"Changing line {lineId} color from {currentColor} to {color}");
+
+                theSimulationManager.AddAction(theTransportManager.SetLineColor(lineId, color));
+            }
+
+            var lineName = theTransportManager.GetLineName(lineId);
+            var newName = _namingStrategy.GetName(transportLine);
+
+            if (!updateName || string.IsNullOrEmpty(newName))
+                return;
+
+            Logger.Message($"Changing line {lineId} name from '{lineName}' to '{newName}'");
+
+            theSimulationManager.AddAction(theTransportManager.SetLineName(lineId, newName));
+        }
     }
 
     internal static class LineExtensions
     {
-        private static readonly Color32 BlackColor = new Color32(0, 0, 0, 0);
-        private static readonly Color32 DefaultBusColor = new Color32(44, 142, 191, 255);
-        private static readonly Color32 DefaultMetroColor = new Color32(0, 184, 0, 255);
-        private static readonly Color32 DefaultTrainColor = new Color32(219, 86, 0, 255);
+        //// TODO: check default colors for other line types? is there a better way to do this?
+        //private static readonly Color32 BlackColor = new Color32(0, 0, 0, 0);
+        //private static readonly Color32 DefaultBusColor = new Color32(44, 142, 191, 255);
+        //private static readonly Color32 DefaultMetroColor = new Color32(0, 184, 0, 255);
+        //private static readonly Color32 DefaultTrainColor = new Color32(219, 86, 0, 255);
 
-        public static bool IsDefaultColor(this Color32 color)
-        {
-            return color.IsColorEqual(BlackColor) ||
-                   color.IsColorEqual(DefaultBusColor) ||
-                   color.IsColorEqual(DefaultMetroColor) ||
-                   color.IsColorEqual(DefaultTrainColor);
-        }
+        //public static bool IsDefaultColor(this Color32 color)
+        //{
+        //    return color.IsColorEqual(BlackColor) ||
+        //           color.IsColorEqual(DefaultBusColor) ||
+        //           color.IsColorEqual(DefaultMetroColor) ||
+        //           color.IsColorEqual(DefaultTrainColor);
+        //}
 
         public static bool IsColorEqual(this Color32 color1, Color32 color2)
         {
             return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b && color1.a == color2.a;
         }
 
-        public static bool IsActive(this TransportLine transportLine)
+        public static bool IsActive(in this TransportLine transportLine)
         {
             if ((transportLine.m_flags & (TransportLine.Flags.Created | TransportLine.Flags.Hidden)) == 0)
                 return false;
 
             // stations are marked with this flag
-            return (transportLine.m_flags & TransportLine.Flags.Temporary) != TransportLine.Flags.Temporary;
+            return (transportLine.m_flags & TransportLine.Flags.Temporary) == 0;
         }
 
-        public static bool HasCustomColor(this TransportLine transportLine)
+        public static bool IsComplete(in this TransportLine transportLine)
         {
-            return (transportLine.m_flags & TransportLine.Flags.CustomColor) == TransportLine.Flags.CustomColor;
+            return (transportLine.m_flags & TransportLine.Flags.Complete) != 0;
         }
 
-        public static bool HasCustomName(this TransportLine transportLine)
+        public static bool HasCustomColor(in this TransportLine transportLine)
         {
-            return (transportLine.m_flags & TransportLine.Flags.CustomName) == TransportLine.Flags.CustomName;
+            return (transportLine.m_flags & TransportLine.Flags.CustomColor) != 0;
+        }
+
+        public static bool HasCustomName(in this TransportLine transportLine)
+        {
+            return (transportLine.m_flags & TransportLine.Flags.CustomName) != 0;
         }
     }
 

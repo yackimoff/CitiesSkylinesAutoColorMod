@@ -4,8 +4,11 @@ namespace AutoLineColor.Coloring
 {
     internal class RandomHueStrategy : IColorStrategy
     {
-        public Color32 GetColor(TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
+        public Color32 GetColor(in TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
         {
+            // TODO: color families for more line types
+            // TODO: configurable per line type
+
             // ReSharper disable once SwitchStatementMissingSomeCases
             switch (transportLine.Info.m_transportType)
             {

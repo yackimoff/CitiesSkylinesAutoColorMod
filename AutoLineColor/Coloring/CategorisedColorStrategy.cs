@@ -4,7 +4,7 @@ namespace AutoLineColor.Coloring
 {
     internal class CategorisedColorStrategy : IColorStrategy
     {
-        public Color32 GetColor(TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
+        public Color32 GetColor(in TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
         {
             // ReSharper disable once SwitchStatementMissingSomeCases
             switch (transportLine.Info.m_transportType)
