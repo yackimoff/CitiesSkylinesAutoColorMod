@@ -29,9 +29,9 @@ namespace AutoLineColor.Naming
             if (analysis.DistanceOnSegments == null)
                 return null;
 
-            var logger = Console.Instance;
+            //var logger = Console.Instance;
 
-            logger.Message($"Line traverses {analysis.DistanceOnSegments.Count} segment names...");
+            //logger.Message($"Line traverses {analysis.DistanceOnSegments.Count} segment names...");
 
             IChunk districtBasedChunk = null, roadBasedChunk = null;
 
@@ -48,10 +48,10 @@ namespace AutoLineColor.Naming
 
             if (analysis.DistanceOnSegments.Count > 0)
             {
-                foreach (var pair in analysis.DistanceOnSegments)
-                {
-                    logger.Message($"... '{pair.Key}' (for {pair.Value} units)");
-                }
+                //foreach (var pair in analysis.DistanceOnSegments)
+                //{
+                //    logger.Message($"... '{pair.Key}' (for {pair.Value} units)");
+                //}
 
                 // sort all segment names by descending distance traveled, and add up the cumulative distance
                 var sorted = analysis.DistanceOnSegments
@@ -63,12 +63,12 @@ namespace AutoLineColor.Naming
                 // find the minimum set of roads that make up more than half the total distance
                 var totalDistance = analysis.DistanceOnSegments.Sum(p => p.Value);
 
-                logger.Message("totalDistance=" + totalDistance);
-                logger.Message("with cumulative:");
-                foreach (var r in sorted)
-                {
-                    logger.Message($"'{r.name}', d={r.distance}, cd={r.cumulativeDistance}");
-                }
+                //logger.Message("totalDistance=" + totalDistance);
+                //logger.Message("with cumulative:");
+                //foreach (var r in sorted)
+                //{
+                //    logger.Message($"'{r.name}', d={r.distance}, cd={r.cumulativeDistance}");
+                //}
 
                 var majoritySize = 1 + Array.FindIndex(sorted, r => r.cumulativeDistance > totalDistance / 2);
                 var majority = sorted.Take(majoritySize);
