@@ -51,7 +51,7 @@ namespace AutoLineColor.Naming
             Predicate<string> variantPredicate,
             Predicate<string> shorteningPredicate)
         {
-            var logger = Console.Instance;
+            //var logger = Console.Instance;
 
             foreach (var v in chunk.GetThisAndVariants())
             {

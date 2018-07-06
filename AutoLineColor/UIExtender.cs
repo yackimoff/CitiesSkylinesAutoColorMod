@@ -8,13 +8,14 @@ namespace AutoLineColor
     [UsedImplicitly]
     public class UIExtender : LoadingExtensionBase
     {
-        private LoadMode mode;
+        private LoadMode _mode;
 
-        private UIButton refreshBtn;
-        private MouseEventHandler refreshBtnClick;
+        private UIButton _refreshBtn;
+        private MouseEventHandler _refreshBtnClick;
 
         private static bool ActiveInMode(LoadMode mode)
         {
+            // ReSharper disable once SwitchStatementMissingSomeCases
             switch (mode)
             {
                 case LoadMode.NewGame:
@@ -29,7 +30,7 @@ namespace AutoLineColor
 
         public override void OnLevelLoaded(LoadMode mode)
         {
-            this.mode = mode;
+            this._mode = mode;
 
             if (ActiveInMode(mode))
                 AttachUI();
@@ -37,7 +38,7 @@ namespace AutoLineColor
 
         public override void OnLevelUnloading()
         {
-            if (ActiveInMode(mode))
+            if (ActiveInMode(_mode))
                 DetachUI();
         }
 
@@ -50,32 +51,32 @@ namespace AutoLineColor
             var linesOverview = (UIButton)ptwipUiPanel.Find("LinesOverview");
             var buttonPanel = (UIPanel)linesOverview.parent;
 
-            refreshBtn = buttonPanel.Find<UIButton>("RefreshNameAndColor");
+            _refreshBtn = buttonPanel.Find<UIButton>("RefreshNameAndColor");
 
-            if (refreshBtn == null)
+            if (_refreshBtn == null)
             {
-                refreshBtn = buttonPanel.AddUIComponent<UIButton>();
-                refreshBtn.name = "RefreshNameAndColor";
+                _refreshBtn = buttonPanel.AddUIComponent<UIButton>();
+                _refreshBtn.name = "RefreshNameAndColor";
             }
-            
-            refreshBtn.text = "Refresh Name/Color";
-            refreshBtn.tooltip = "Reassign the line name and color according to current AutoLineColor Redux settings.";
-            refreshBtn.textScale = .75f;
-            refreshBtn.font = linesOverview.font;
-            refreshBtn.hoveredTextColor = new Color32(7, 132, 255, 255);
-            refreshBtn.textPadding = new RectOffset(10, 10, 4, 2);
-            refreshBtn.autoSize = true;
-            refreshBtn.anchor = UIAnchorStyle.Left | UIAnchorStyle.Right | UIAnchorStyle.CenterVertical;
-            refreshBtn.normalBgSprite = "ButtonMenu";
-            refreshBtn.hoveredBgSprite = "ButtonMenuHovered";
-            refreshBtn.disabledBgSprite = "ButtonMenuDisabled";
-            //refreshBtn.focusedBgSprite = "ButtonMenuFocused";
-            refreshBtn.pressedBgSprite = "ButtonMenuPressed";
 
-            refreshBtn.SendToBack();
+            _refreshBtn.text = "Refresh Name/Color";
+            _refreshBtn.tooltip = "Reassign the line name and color according to current AutoLineColor Redux settings.";
+            _refreshBtn.textScale = .75f;
+            _refreshBtn.font = linesOverview.font;
+            _refreshBtn.hoveredTextColor = new Color32(7, 132, 255, 255);
+            _refreshBtn.textPadding = new RectOffset(10, 10, 4, 2);
+            _refreshBtn.autoSize = true;
+            _refreshBtn.anchor = UIAnchorStyle.Left | UIAnchorStyle.Right | UIAnchorStyle.CenterVertical;
+            _refreshBtn.normalBgSprite = "ButtonMenu";
+            _refreshBtn.hoveredBgSprite = "ButtonMenuHovered";
+            _refreshBtn.disabledBgSprite = "ButtonMenuDisabled";
+            //refreshBtn.focusedBgSprite = "ButtonMenuFocused";
+            _refreshBtn.pressedBgSprite = "ButtonMenuPressed";
+
+            _refreshBtn.SendToBack();
             buttonPanel.ResetLayout();
-            
-            refreshBtnClick = (x, y) =>
+
+            _refreshBtnClick = (x, y) =>
             {
                 ushort lineId;
 
@@ -94,7 +95,7 @@ namespace AutoLineColor
                 ColorMonitor.Instance?.ForceRefreshLine(lineId);
             };
 
-            refreshBtn.eventClick += refreshBtnClick;
+            _refreshBtn.eventClick += _refreshBtnClick;
 
             //Console.Instance.Message("Attached UI");
         }
@@ -103,14 +104,15 @@ namespace AutoLineColor
         {
             //Console.Instance.Message("Detaching UI");
 
-            if (refreshBtn != null)
+            // ReSharper disable once InvertIf
+            if (_refreshBtn != null)
             {
-                refreshBtn.eventClick -= refreshBtnClick;
-                refreshBtnClick = null;
+                _refreshBtn.eventClick -= _refreshBtnClick;
+                _refreshBtnClick = null;
 
-                refreshBtn.parent.RemoveUIComponent(refreshBtn);
-                UnityEngine.Object.Destroy(refreshBtn.gameObject);
-                refreshBtn = null;
+                _refreshBtn.parent.RemoveUIComponent(_refreshBtn);
+                Object.Destroy(_refreshBtn.gameObject);
+                _refreshBtn = null;
             }
 
             //Console.Instance.Message("Detached UI");

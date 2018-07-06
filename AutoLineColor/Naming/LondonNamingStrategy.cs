@@ -76,12 +76,12 @@ namespace AutoLineColor.Naming
                 /* District Initials */
                 prefix = analysis.Districts[0].GetInitials();
                 number = 0;
-                string prefixed_number;
+                string prefixedNumber;
                 do
                 {
                     number++;
-                    prefixed_number = $"{prefix}{number}";
-                } while (existingNumbers.Contains(prefixed_number));
+                    prefixedNumber = $"{prefix}{number}";
+                } while (existingNumbers.Contains(prefixedNumber));
             }
             else
             {

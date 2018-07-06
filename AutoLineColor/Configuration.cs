@@ -27,7 +27,7 @@ namespace AutoLineColor
         private const int DefaultMinColorDiffPercent = 5;
 
         private static Configuration _instance;
-        private static readonly Console _logger = Console.Instance;
+        private static readonly Console Logger = Console.Instance;
 
         private static Configuration LoadConfig()
         {
@@ -40,13 +40,13 @@ namespace AutoLineColor
 
                 if (File.Exists(fullConfigPath) == false)
                 {
-                    _logger.Message("No config file. Building default and writing it to " + fullConfigPath);
+                    Logger.Message("No config file. Building default and writing it to " + fullConfigPath);
                     config = GetDefaultConfig();
                     isDirty = true;
                 }
                 else
                 {
-                    _logger.Message("Config file exists. Using it");
+                    Logger.Message("Config file exists. Using it");
                     using (var reader = XmlReader.Create(fullConfigPath)) {
                         config = (Configuration)serializer.Deserialize(reader);
                     }
@@ -68,7 +68,7 @@ namespace AutoLineColor
             catch (Exception ex)
             {
                 //Don't save changes if it failed for some reason
-                _logger.Error("Error reading configuration settings - " + ex);
+                Logger.Error("Error reading configuration settings - " + ex);
                 config = GetDefaultConfig();
             }
 
@@ -80,24 +80,24 @@ namespace AutoLineColor
             return config;
         }
 
-        public void ColorStrategyChange(int Strategy)
+        public void ColorStrategyChange(int strategy)
         {
-            this.StagedColorStrategy = (ColorStrategy)Strategy;
+            this.StagedColorStrategy = (ColorStrategy)strategy;
         }
 
-        public void NamingStrategyChange(int Strategy)
+        public void NamingStrategyChange(int strategy)
         {
-            this.StagedNamingStrategy = (NamingStrategy)Strategy;
+            this.StagedNamingStrategy = (NamingStrategy)strategy;
         }
 
-        public void MinColorDiffChange(float MinDiff)
+        public void MinColorDiffChange(float minDiff)
         {
-            this.StagedMinColorDiffPercentage = (int)MinDiff;
+            this.StagedMinColorDiffPercentage = (int)minDiff;
         }
 
-        public void MaxDiffColorPickChange(float MaxColorPicks)
+        public void MaxDiffColorPickChange(float maxColorPicks)
         {
-            this.StagedMaxDiffColorPickAttempt = (int)MaxColorPicks;
+            this.StagedMaxDiffColorPickAttempt = (int)maxColorPicks;
         }
 
         public void FlushStagedChanges()
@@ -112,7 +112,7 @@ namespace AutoLineColor
         {
             var serializer = new XmlSerializer(typeof(Configuration));
 
-            _logger.Message("Saving changes to config file");
+            Logger.Message("Saving changes to config file");
 
             //If any changes have occured, apply them, otherwise keep the current value
             this.ColorStrategy = this.StagedColorStrategy ?? this.ColorStrategy;
@@ -123,28 +123,28 @@ namespace AutoLineColor
             //clear changes and log
             if (this.StagedColorStrategy.HasValue)
             {
-                _logger.Message($"ColorStrategy changed to {this.StagedColorStrategy.Value}");
+                Logger.Message($"ColorStrategy changed to {this.StagedColorStrategy.Value}");
             }
 
             if (this.StagedNamingStrategy.HasValue)
             {
-                _logger.Message($"NamingStrategy changed to {this.StagedNamingStrategy.Value}");
+                Logger.Message($"NamingStrategy changed to {this.StagedNamingStrategy.Value}");
             }
 
             if (this.StagedMaxDiffColorPickAttempt.HasValue)
             {
-                _logger.Message($"MaxDiffColorPickAttempt changed to {this.StagedMaxDiffColorPickAttempt.Value}");
+                Logger.Message($"MaxDiffColorPickAttempt changed to {this.StagedMaxDiffColorPickAttempt.Value}");
             }
 
             if (this.StagedMinColorDiffPercentage.HasValue)
             {
-                _logger.Message($"MinColorDiffPercentage changed to {this.StagedMinColorDiffPercentage.Value}");
+                Logger.Message($"MinColorDiffPercentage changed to {this.StagedMinColorDiffPercentage.Value}");
             }
 
             FlushStagedChanges();
 
             //How we let the ColorMonitor thread know to update the strategies
-            _logger.Message("Marking undigested changes");
+            Logger.Message("Marking undigested changes");
             this.UndigestedChanges = true;
 
             //Save to disk

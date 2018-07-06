@@ -43,7 +43,7 @@ namespace AutoLineColor
             Debug.Assert(_config.MinColorDiffPercentage != null, "Config.MinColorDiffPercentage != null");
             group.AddSlider("MinColorDifference", 1f, 100f, 5f, (float)_config.MinColorDiffPercentage,
                 _config.MinColorDiffChange);
-            
+
             group.AddCheckbox("Debug", _logger.Debug, _logger.SetDebug);
 
             // Bottom: Save

@@ -23,10 +23,10 @@ namespace AutoLineColor.Coloring
         {
             _colors = new Dictionary<ColorFamily, Color32[]>
             {
-                {ColorFamily.Any, BuildColorList(DefaultAllColors, "all.txt")},
-                {ColorFamily.Blue, BuildColorList(DefaultBlueColors, "blues.txt")},
-                {ColorFamily.Green, BuildColorList(DefaultGreenColors, "green.txt")},
-                {ColorFamily.Orange, BuildColorList(DefaultOrangeColors, "orange.txt")}
+                { ColorFamily.Any, BuildColorList(DefaultAllColors, "all.txt") },
+                { ColorFamily.Blue, BuildColorList(DefaultBlueColors, "blues.txt") },
+                { ColorFamily.Green, BuildColorList(DefaultGreenColors, "green.txt") },
+                { ColorFamily.Orange, BuildColorList(DefaultOrangeColors, "orange.txt") }
             };
         }
 

@@ -52,16 +52,16 @@ namespace AutoLineColor.Coloring
         private const string DefaultPaleColors = "#bccaff, #ffbcbc, #bcffd2, #d6bcff, #fffbbc, #bcddff, #ffbcc6, #bcf7bd, #c2bcff, #ffe4bc, #bcf3ff, #ffbce0, #c7ffbc, #bcbcff, #ffc1bc, #bcffe8, #f5bcff, #daffbc, #a6baff, #ffa6a6, #a6ffc4, #cba6ff, #fffaa6, #a6d3ff, #ffa6b5, #a6f5a8, #afa6ff, #ffdda6, #a6efff, #ffa6d7, #b6ffa6, #a6a7ff, #ffaea6, #a6ffe1, #f3a6ff, #d0ffa6, #7f9eff, #ff7f7f, #7fffae, #b77fff, #fff97f, #7fc3ff, #ff7f97, #7ff282, #8d7fff, #ffd17f, #7feaff, #ff7fc9, #97ff7f, #7f80ff, #ff8c7f, #7fffd7, #ef7fff, #bfff7f";
         private const string DefaultDarkColors = "#7f2200, #007f64, #75007f, #527f00, #00377f, #7f0100, #007f45, #4c007f, #7f7b00, #00567f, #7f002f, #007710, #24007f, #7f6000, #00727f, #7f005a, #307f00, #000a7f";
 
-        private static List<Color32> _bright_colors;
-        private static List<Color32> _pale_colors;
-        private static List<Color32> _dark_colors;
+        private static List<Color32> _brightColors;
+        private static List<Color32> _paleColors;
+        private static List<Color32> _darkColors;
         private static readonly Color32 Black = new Color32(0, 0, 0, 255);
 
         public static void Initialize()
         {
-            _bright_colors = BuildColorList(DefaultBrightColors, "bright.txt");
-            _pale_colors = BuildColorList(DefaultPaleColors, "pale.txt");
-            _dark_colors = BuildColorList(DefaultDarkColors, "dark.txt");
+            _brightColors = BuildColorList(DefaultBrightColors, "bright.txt");
+            _paleColors = BuildColorList(DefaultPaleColors, "pale.txt");
+            _darkColors = BuildColorList(DefaultDarkColors, "dark.txt");
         }
 
         private static List<Color32> BuildColorList(string defaultColorList, string fileName)
@@ -163,17 +163,17 @@ namespace AutoLineColor.Coloring
 
         public static Color32 GetBrightColor(List<Color32> usedColors)
         {
-            return GetColor(_bright_colors, usedColors);
+            return GetColor(_brightColors, usedColors);
         }
 
         public static Color32 GetPaleColor(List<Color32> usedColors)
         {
-            return GetColor(_pale_colors, usedColors);
+            return GetColor(_paleColors, usedColors);
         }
 
         public static Color32 GetDarkColor(List<Color32> usedColors)
         {
-            return GetColor(_dark_colors, usedColors);
+            return GetColor(_darkColors, usedColors);
         }
     }
 }
