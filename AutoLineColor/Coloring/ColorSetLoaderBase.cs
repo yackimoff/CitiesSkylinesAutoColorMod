@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Text;
 using JetBrains.Annotations;
 using UnityEngine;
 
 namespace AutoLineColor.Coloring
 {
-    internal class ColorSetLoader : IColorSetLoader
+    internal abstract class ColorSetLoaderBase : IColorSetLoader
     {
         // ReSharper disable once MemberCanBePrivate.Global
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
@@ -17,7 +20,7 @@ namespace AutoLineColor.Coloring
         [NotNull] private readonly string _filename;
         [NotNull] private readonly string _defaultContent;
 
-        public ColorSetLoader([NotNull] string name, [NotNull] string filename, [NotNull] string defaultContent)
+        protected ColorSetLoaderBase([NotNull] string name, [NotNull] string filename, [NotNull] string defaultContent)
         {
             Name = name;
             _filename = filename;
@@ -30,6 +33,7 @@ namespace AutoLineColor.Coloring
 
             // we need to load the color list
             var fullPath = Configuration.GetModFileName(_filename);
+            logger.Message($"Loading color set from {fullPath}");
             var unparsedColors = _defaultContent;
 
             try
@@ -46,28 +50,24 @@ namespace AutoLineColor.Coloring
             }
             catch (Exception ex)
             {
-                logger.Error("error reading colors from disk " + ex);
+                logger.Error("Error reading colors from disk: " + ex);
             }
 
-            return ParseColorSet(unparsedColors);
-        }
-
-        private static IColorSet ParseColorSet(string unparsedColors)
-        {
-            // split on new lines, commas and semi-colons
-            var colorHexValues = unparsedColors.Split(new[] { "\n", "\r", ",", ";" }, StringSplitOptions.RemoveEmptyEntries);
-            var colorList = new List<Color32>(colorHexValues.Length);
-            foreach (var colorHexValue in colorHexValues)
+            try
             {
-                if (TryHexToColor(colorHexValue, out var color))
-                {
-                    colorList.Add(color);
-                }
+                return ParseColorSet(unparsedColors);
             }
-            return new ColorSet(colorList);
+            catch (Exception ex)
+            {
+                logger.Error("Error parsing loaded colors: " + ex);
+                logger.Message("Color file content: " + unparsedColors);
+                throw;
+            }
         }
 
-        private static bool TryHexToColor(string hex, out Color32 color)
+        [NotNull] protected abstract IColorSet ParseColorSet([NotNull] string unparsedColors);
+
+        protected static bool TryHexToColor(string hex, out Color32 color)
         {
             try
             {

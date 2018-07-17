@@ -1,15 +1,22 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using JetBrains.Annotations;
 
 namespace AutoLineColor.Util
 {
     internal class ReadOnlyList<T> : IReadOnlyList<T>
     {
-        private readonly IList<T> _list;
+        [NotNull] private readonly IList<T> _list;
 
-        public ReadOnlyList(IList<T> list)
+        public ReadOnlyList([NotNull] IList<T> list)
         {
             _list = list;
+        }
+
+        public ReadOnlyList([NotNull] IEnumerable<T> list)
+        {
+            _list = list.ToArray();
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -19,7 +26,7 @@ namespace AutoLineColor.Util
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return _list.GetEnumerator();
+            return GetEnumerator();
         }
 
         public int Count => _list.Count;

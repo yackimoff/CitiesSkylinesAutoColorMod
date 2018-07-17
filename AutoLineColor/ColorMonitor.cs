@@ -69,6 +69,8 @@ namespace AutoLineColor
                     return new LondonNamingStrategy();
                 case NamingStrategy.Roads:
                     return new RoadNamingStrategy();
+                case NamingStrategy.NamedColors:
+                    return new NamedColorStrategy();
                 default:
                     Logger.Error("unknown naming strategy");
                     return new NoNamingStrategy();
@@ -86,6 +88,8 @@ namespace AutoLineColor
                     return new RandomColorStrategy();
                 case ColorStrategy.CategorisedColor:
                     return new CategorisedColorStrategy();
+                case ColorStrategy.NamedColors:
+                    return new NamedColorStrategy();
                 default:
                     Logger.Error("unknown color strategy");
                     return new RandomHueStrategy();
@@ -225,23 +229,38 @@ namespace AutoLineColor
 
             Logger.Message($"Working on line {lineId} (m_flags={transportLine.m_flags} m_color={transportLine.m_color})");
 
-            if (updateColor)
+            var currentColor = (Color32)theTransportManager.GetLineColor(lineId);
+            var currentName = theTransportManager.GetLineName(lineId);
+            Color32 newColor;
+            string newName;
+
+            if (_colorStrategy is ICombinedStrategy combinedStrategy && _colorStrategy.GetType() == _namingStrategy.GetType())  //XXX ugly
             {
-                var color = _colorStrategy.GetColor(transportLine, _usedColors);
-                var currentColor = (Color32)theTransportManager.GetLineColor(lineId);
+                combinedStrategy.GetColorAndName(transportLine, _usedColors, out newColor, out newName);
 
-                Logger.Message($"Changing line {lineId} color from {currentColor} to {color}");
+                theSimulationManager.AddAction(theTransportManager.SetLineColor(lineId, newColor));
 
-                theSimulationManager.AddAction(theTransportManager.SetLineColor(lineId, color));
+                if (!string.IsNullOrEmpty(newName))
+                    theSimulationManager.AddAction(theTransportManager.SetLineName(lineId, newName));
+
+                return;
             }
 
-            var lineName = theTransportManager.GetLineName(lineId);
-            var newName = _namingStrategy.GetName(transportLine);
+            if (updateColor)
+            {
+                newColor = _colorStrategy.GetColor(transportLine, _usedColors);
+
+                Logger.Message($"Changing line {lineId} color from {currentColor} to {newColor}");
+
+                theSimulationManager.AddAction(theTransportManager.SetLineColor(lineId, newColor));
+            }
+
+            newName = _namingStrategy.GetName(transportLine);
 
             if (!updateName || string.IsNullOrEmpty(newName))
                 return;
 
-            Logger.Message($"Changing line {lineId} name from '{lineName}' to '{newName}'");
+            Logger.Message($"Changing line {lineId} name from '{currentName}' to '{newName}'");
 
             theSimulationManager.AddAction(theTransportManager.SetLineName(lineId, newName));
         }

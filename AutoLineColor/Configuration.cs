@@ -179,7 +179,8 @@ namespace AutoLineColor
     {
         RandomHue,
         RandomColor,
-        CategorisedColor
+        CategorisedColor,
+        NamedColors
     }
 
     public enum NamingStrategy
@@ -187,6 +188,7 @@ namespace AutoLineColor
         None,
         Districts,
         London,
-        Roads
+        Roads,
+        NamedColors
     }
 }

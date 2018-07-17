@@ -9,6 +9,8 @@ namespace AutoLineColor.Coloring
         public static IColorSetProvider Random { get; } = new RandomProvider();
         public static IColorSetProvider RandomHue { get; } = new RandomHueProvider();
 
+        public static IColorSetProvider Named { get; } = new NamedProvider();
+
         private class RandomProvider : IColorSetProvider
         {
             public IColorSet GetColorSet(in TransportLine transportLine)
@@ -50,6 +52,14 @@ namespace AutoLineColor.Coloring
                     default:
                         return KnownColorSet.Any.LoadColorSet();
                 }
+            }
+        }
+
+        private class NamedProvider : IColorSetProvider
+        {
+            public IColorSet GetColorSet(in TransportLine transportLine)
+            {
+                return KnownColorSet.Named.LoadColorSet();
             }
         }
     }

@@ -56,17 +56,21 @@
     <Compile Include="Annotations.cs" />
     <Compile Include="AutoLineColorMod.cs" />
     <Compile Include="Coloring\ColorDistanceMetric.cs" />
+    <Compile Include="Coloring\ColorSetLoaderBase.cs" />
     <Compile Include="Coloring\ColorStrategyBase.cs" />
     <Compile Include="Coloring\ColorSelector.cs" />
     <Compile Include="Coloring\ColorSet.cs" />
     <Compile Include="Coloring\ColorSetProvider.cs" />
     <Compile Include="Coloring\KnownColorSet.cs" />
+    <Compile Include="Coloring\NamedColorSetLoader.cs" />
     <Compile Include="Coloring\UsedColors.cs" />
     <Compile Include="ColorMonitor.cs" />
-    <Compile Include="Coloring\ColorSetLoader.cs" />
+    <Compile Include="Coloring\SimpleColorSetLoader.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="ICombinedStrategy.cs" />
+    <Compile Include="NamedColorStrategy.cs" />
     <Compile Include="Naming\Chunks.cs" />
     <Compile Include="Naming\DistrictNamingStrategy.cs" />
     <Compile Include="Coloring\IColorStrategy.cs" />
@@ -91,7 +95,10 @@
   <PropertyGroup>
     <PostBuildEvent>mkdir "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"
 del "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)\$(TargetFileName)"
-xcopy /y "$(TargetPath)" "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"</PostBuildEvent>
+xcopy /y "$(TargetPath)" "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"
+xcopy /y "$(TargetDir)Theraot.Core.dll" "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"
+xcopy /y "$(TargetDir)*.pdb" "%25LOCALAPPDATA%25\Colossal Order\Cities_Skylines\Addons\Mods\$(SolutionName)"
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

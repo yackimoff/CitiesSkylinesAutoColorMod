@@ -2,7 +2,7 @@
 
 namespace AutoLineColor.Naming
 {
-    internal interface INamingStrategy
+    public interface INamingStrategy
     {
         [CanBeNull]
         string GetName(in TransportLine transportLine);

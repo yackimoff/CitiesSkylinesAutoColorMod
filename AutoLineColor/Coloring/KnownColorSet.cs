@@ -2,7 +2,7 @@
 {
     internal static class KnownColorSet
     {
-        public static IColorSetLoader Any { get; } = new ColorSetLoader(
+        public static IColorSetLoader Any { get; } = new SimpleColorSetLoader(
             "Any",
             "all.txt",
             "#f50302, #d60404, #990606, #c71818, #f52020, #991818, #d62f2f, #f53838, #991d02," +
@@ -23,7 +23,7 @@
             " #c70666, #e50e7a, #c72e7a, #f53b98, #99255f, #c7003f, #f5034f, #a80236, #99123d," +
             " #d61c57, #b81d4e, #f52f6d, #b8041c, #e5203a, #c72238, #a81e31, #e5374e");
 
-        public static IColorSetLoader Blue { get; } = new ColorSetLoader(
+        public static IColorSetLoader Blue { get; } = new SimpleColorSetLoader(
             "Blue",
             "blues.txt",
             "#16f5f1, #1ed6d3, #18a8a6, #00a6c7, #30c7e6, #2893a8, #0095e6, #056fa8, #1288c7," +
@@ -32,7 +32,7 @@
             " #1a3e99, #3768e6, #031bf5, #0217d6, #0214b8, #021199, #1628c7, #1423a8, #2236e6," +
             " #2d3ed6");
 
-        public static IColorSetLoader Green { get; } = new ColorSetLoader(
+        public static IColorSetLoader Green { get; } = new SimpleColorSetLoader(
             "Green",
             "green.txt",
             "#6af500, #54b807, #7ad633, #8df53d, #467a1f, #66a832, #629939, #527a33, #87c756," +
@@ -43,7 +43,7 @@
             " #28994a, #49e678, #2f8a4a, #367a4a, #74d691, #89f5a9, #5d996f, #93e6ac, #7fb890," +
             " #98d6ab");
 
-        public static IColorSetLoader Orange { get; } = new ColorSetLoader(
+        public static IColorSetLoader Orange { get; } = new SimpleColorSetLoader(
             "Orange",
             "orange.txt",
             "#a80000, #c70202, #e51515, #991212, #c71c1c, #e52c2c, #b82727, #992525, #f52f02," +
@@ -52,7 +52,7 @@
             " #c7812c, #996423, #997000, #b88806, #f5bc20, #d6a51e, #a88628, #d6c400, #a89c16," +
             " #f5e322, #c7ba2c");
 
-        public static IColorSetLoader Bright { get; } = new ColorSetLoader(
+        public static IColorSetLoader Bright { get; } = new SimpleColorSetLoader(
             "Bright",
             "bright.txt",
             "#00ee20, #4900ff, #ffc000, #00e4ff, #ff00b4, #60ff00, #0014ff, #ff4500, #00ffc9," +
@@ -60,7 +60,7 @@
             " #00a816, #3300b4, #b48700, #00a1b4, #b4007f, #43b400, #000eb4, #b43000, #00b48e," +
             " #a500b4, #74b400, #004db4, #b40200, #00b461, #6c00b4, #b4ae00, #0079b4, #b40043");
 
-        public static IColorSetLoader Pale { get; } = new ColorSetLoader(
+        public static IColorSetLoader Pale { get; } = new SimpleColorSetLoader(
             "Pale",
             "pale.txt",
             "#bccaff, #ffbcbc, #bcffd2, #d6bcff, #fffbbc, #bcddff, #ffbcc6, #bcf7bd, #c2bcff," +
@@ -70,10 +70,16 @@
             " #7f9eff, #ff7f7f, #7fffae, #b77fff, #fff97f, #7fc3ff, #ff7f97, #7ff282, #8d7fff," +
             " #ffd17f, #7feaff, #ff7fc9, #97ff7f, #7f80ff, #ff8c7f, #7fffd7, #ef7fff, #bfff7f");
 
-        public static IColorSetLoader Dark { get; } = new ColorSetLoader(
+        public static IColorSetLoader Dark { get; } = new SimpleColorSetLoader(
             "Dark",
             "dark.txt",
             "#7f2200, #007f64, #75007f, #527f00, #00377f, #7f0100, #007f45, #4c007f, #7f7b00," +
             " #00567f, #7f002f, #007710, #24007f, #7f6000, #00727f, #7f005a, #307f00, #000a7f");
+
+        public static IColorSetLoader Named { get; } = new NamedColorSetLoader(
+            "Named",
+            "named.txt",
+            "#ff0000 Red, #00ff00 Green, #0000ff Blue, #ffff00 Yellow, #ff00ff Fuchsia, #00ffff Cyan,"+
+            " #ffffff White, #888888 Gray, #010101 Black");
     }
 }

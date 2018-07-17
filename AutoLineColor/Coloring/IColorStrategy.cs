@@ -14,6 +14,12 @@ namespace AutoLineColor.Coloring
         [NotNull] IReadOnlyList<Color32> GetColors();
     }
 
+    public interface INamedColorSet : IColorSet
+    {
+        [CanBeNull]
+        string GetColorName(Color32 color);
+    }
+
     public interface IColorSetLoader
     {
         [NotNull] IColorSet LoadColorSet();
