@@ -52,8 +52,14 @@
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Cities_Skylines\Cities_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
+    <None Include="Strategies.xsd">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <None Include="AutoLineColorSettings.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <Compile Include="Annotations.cs" />
     <Compile Include="AutoLineColorMod.cs" />
     <Compile Include="Coloring\ColorFamily.cs" />
@@ -80,6 +86,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Strategies.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -1,0 +1,416 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="Strategies"
+    targetNamespace="http://hansprestige.com/AutoLineColorRedux/repository"
+    elementFormDefault="qualified"
+    xmlns="http://hansprestige.com/AutoLineColorRedux/repository"
+    xmlns:mstns="http://hansprestige.com/AutoLineColorRedux/repository"
+    xmlns:tns="http://hansprestige.com/AutoLineColorRedux/repository"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  
+  <!-- Top Level -->
+
+  <xs:element name="Repository">
+    <xs:annotation>
+      <xs:documentation>
+        Defines color and naming schemes for AutoLineColor Redux.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="ColorStrategies">
+          <xs:complexType>
+            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="ColorStrategy" type="NamedColorStrategy" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element ref="NamingStrategies" />
+        <xs:element name="CombinedStrategies">
+          <xs:complexType>
+            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="CombinedStrategy" type="CombinedStrategy" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="ColorSets">
+          <xs:complexType>
+            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+              <xs:element name="ColorSet" type="ColorSet" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+    <xs:unique name="ColorCombinedStrategyNamesUnique">
+      <xs:selector xpath="tns:ColorStrategies/tns:ColorStrategy | tns:ColorStrategies/tns:CombinedStrategy" />
+      <xs:field xpath="@Name" />
+    </xs:unique>
+  </xs:element>
+
+  <xs:attributeGroup name="ConditionAttributes">
+    <xs:attribute name="DistrictCount" type="xs:nonNegativeInteger" />
+    <xs:attribute name="HasNonDistrictStop" type="xs:boolean" />
+    <xs:attribute name="LineType" type="LineType" />
+  </xs:attributeGroup>
+
+  <xs:simpleType name="LineType">
+    <xs:annotation>
+      <xs:documentation>
+        A type of transit line.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Bus" />
+      <xs:enumeration value="Tram" />
+      <xs:enumeration value="Metro" />
+      <xs:enumeration value="Train" />
+      <xs:enumeration value="Monorail" />
+      <xs:enumeration value="Blimp" />
+      <xs:enumeration value="Ferry" />
+      <!-- XXX -->
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Color Strategies -->
+
+  <xs:complexType name="ColorStrategy" abstract="true">
+    <xs:annotation>
+      <xs:documentation>
+        A player-selectable option for setting a line's color.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:group ref="ColorStrategy" />
+    <xs:attribute name="Name" type="xs:Name" use="optional" />
+  </xs:complexType>
+
+  <xs:group name="ColorStrategy">
+    <xs:all>
+      <xs:element name="ColorSet" type="xs:IDREF" />
+      <xs:element name="ColorSelector" type="ColorSelector" />
+    </xs:all>
+  </xs:group>
+
+  <xs:complexType name="NamedColorStrategy">
+    <xs:complexContent>
+      <xs:restriction base="ColorStrategy">
+        <xs:group ref="ColorStrategy" />
+        <xs:attribute name="Name" type="xs:Name" use="required" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="UnnamedColorStrategy">
+    <xs:complexContent>
+      <xs:restriction base="ColorStrategy">
+        <xs:group ref="ColorStrategy" />
+        <xs:attribute name="Name" type="xs:Name" use="prohibited" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:simpleType name="ColorSelector">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="LeastUsed">
+        <xs:annotation>
+          <xs:documentation>
+            Picks the color that has been used the least number of times so far.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="DifferenceThreshold">
+        <xs:annotation>
+          <xs:documentation>
+            Picks a random unused color that meets a difference threshold, or the
+            color with the maximum difference if all colors have been used.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="ColorSet">
+    <xs:annotation>
+      <xs:documentation>
+        A named color palette, or a named group of alternative palettes.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:group ref="ColorSetExpression" />
+    <xs:attribute name="Name" type="xs:ID" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="ColorSetExpression">
+    <xs:group ref="ColorSetExpression" />
+  </xs:complexType>
+
+  <xs:group name="ColorSetExpression">
+    <xs:choice>
+      <xs:element name="File" type="ColorSetFile" />
+      <xs:element name="Conditional" type="ColorSetConditional" />
+      <xs:element name="ColorSet" type="ColorSetRef" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:simpleType name="FileName">
+    <xs:annotation>
+      <xs:documentation>
+        The name of a local file, without a path.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:anyURI">
+      <xs:pattern value="[^/\\:?*]*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="ColorSetFile">
+    <xs:annotation>
+      <xs:documentation>
+        A palette loaded from a local file.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:simpleContent>
+      <xs:annotation>
+        <xs:documentation>
+          The initial contents of the file, if it doesn't exist.
+        </xs:documentation>
+      </xs:annotation>
+      <xs:extension base="xs:string">
+        <xs:attribute name="Name" type="FileName" use="required" />
+        <xs:attribute name="Format" type="ColorFileFormat" default="ColorsOnly" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:simpleType name="ColorFileFormat">
+    <xs:annotation>
+      <xs:documentation>
+        The format of the palette file.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ColorsOnly">
+        <xs:annotation>
+          <xs:documentation>
+            Hex colors separated by whitespace or commas.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="WithNames">
+        <xs:annotation>
+          <xs:documentation>
+            One color per line, each followed by whitespace and a name.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="ColorSetConditional">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="When" type="ColorSetWhen" />
+      <xs:element minOccurs="0" name="Default" type="ColorSetExpression" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ColorSetWhen">
+    <xs:group ref="ColorSetExpression" />
+    <xs:attributeGroup ref="ConditionAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="ColorSetRef">
+    <xs:annotation>
+      <xs:documentation>
+        A reference to another color set.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence />
+    <xs:attribute name="Ref" type="xs:Name" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The name of the other color set.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <!-- Combined Strategies -->
+
+  <xs:complexType name="CombinedStrategy">
+    <xs:annotation>
+      <xs:documentation>
+        A player-selectable option for setting a line's color and name together.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:all>
+      <xs:element name="ColorStrategy" type="UnnamedColorStrategy" />
+      <xs:element name="NamingStrategy" type="UnnamedNamingStrategy" />
+    </xs:all>
+    <xs:attribute name="Name" type="xs:Name" />
+  </xs:complexType>
+
+  <!-- Naming Strategies -->
+
+  <xs:element name="NamingStrategies">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0">
+          <xs:sequence>
+            <xs:element ref="Templates" />
+            <xs:element minOccurs="0" ref="Data" />
+          </xs:sequence>
+          <xs:sequence>
+            <xs:element ref="Data" />
+            <xs:element ref="Templates" />
+          </xs:sequence>
+        </xs:choice>
+        <xs:element minOccurs="1" maxOccurs="unbounded" name="NamingStrategy"
+                    type="NamedNamingStrategy" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="NamingStrategy" abstract="true">
+    <xs:group ref="NamingExpression" />
+    <xs:attribute name="Name" type="xs:Name" use="optional" />
+  </xs:complexType>
+
+  <xs:complexType name="NamedNamingStrategy">
+    <xs:complexContent>
+      <xs:restriction base="NamingStrategy">
+        <xs:group ref="NamingExpression" />
+        <xs:attribute name="Name" type="xs:Name" use="required" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="UnnamedNamingStrategy">
+    <xs:complexContent>
+      <xs:restriction base="NamingStrategy">
+        <xs:group ref="NamingExpression" />
+        <xs:attribute name="Name" type="xs:Name" use="prohibited" />
+      </xs:restriction>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="NamingExpression">
+    <xs:group ref="NamingExpression" />
+  </xs:complexType>
+
+  <xs:group name="NamingExpression">
+    <xs:choice>
+      <xs:element name="Conditional" type="NamingConditional" />
+      <xs:element name="Random" type="NamingRandom" />
+      <xs:element name="Template" type="UnnamedTemplate" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:group name="RandomizedNamingExpression">
+    <xs:choice>
+      <xs:element name="Conditional" type="RandomizedNamingConditional" />
+      <!-- no nested Random -->
+      <xs:element name="Template" type="RandomizedTemplate" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:complexType name="NamingConditional">
+    <xs:sequence>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="When" type="NamingWhen" />
+      <xs:element minOccurs="0" name="Default" type="NamingExpression" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="RandomizedNamingConditional">
+    <xs:complexContent>
+      <xs:extension base="NamingConditional">
+        <xs:attributeGroup ref="RandomizedAttributes" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="NamingWhen">
+    <xs:group ref="NamingExpression" />
+    <xs:attributeGroup ref="ConditionAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="NamingRandom">
+    <xs:sequence maxOccurs="unbounded">
+      <xs:group ref="RandomizedNamingExpression" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:attributeGroup name="RandomizedAttributes">
+    <xs:attribute name="Chance" type="Percentage" />
+  </xs:attributeGroup>
+
+  <xs:complexType name="UnnamedTemplate">
+    <xs:simpleContent>
+      <xs:extension base="xs:string" />
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="NamedTemplate">
+    <xs:simpleContent>
+      <xs:extension base="UnnamedTemplate">
+        <xs:attribute name="Name" type="TemplateName" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:simpleType name="TemplateName">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="RandomizedTemplate">
+    <xs:simpleContent>
+      <xs:extension base="UnnamedTemplate">
+        <xs:attributeGroup ref="RandomizedAttributes" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:simpleType name="Percentage">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]+%" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="Templates">
+    <xs:annotation>
+      <xs:documentation>
+        Contains helper templates that can be referenced from other templates.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Template" type="NamedTemplate" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Data">
+    <xs:annotation>
+      <xs:documentation>
+        Contains lists of data for use inside templates.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:group minOccurs="0" maxOccurs="unbounded" ref="Datum" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:group name="Datum">
+    <xs:choice>
+      <xs:element name="RandomString">
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <xs:attribute name="Name" type="TemplateName" />
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+  </xs:group>
+</xs:schema>

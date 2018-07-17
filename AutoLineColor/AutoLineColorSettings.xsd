@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<xs:schema targetNamespace="http://hansprestige.com/AutoLineColorRedux/configuration"
+        elementFormDefault="qualified"
+        xmlns:cfg="http://hansprestige.com/AutoLineColorRedux/configuration"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="Configuration" nillable="true" type="cfg:RootConfiguration" />
+
+  <xs:complexType name="RootConfiguration">
+    <xs:complexContent>
+      <xs:extension base="cfg:LineConfiguration">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="MinColorDiffPercentage" type="int" />
+          <xs:element minOccurs="0" name="MaxDiffColorPickAttempt" type="int" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="LineConfiguration">
+    <xs:sequence>
+      <xs:group ref="cfg:StrategyNames" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:group name="StrategyNames">
+    <xs:choice>
+      <xs:sequence>
+        <xs:element name="ColorStrategy" type="cfg:ColorStrategyName" />
+        <xs:element minOccurs="0" name="NamingStrategy" type="cfg:NamingStrategyName" default="None" />
+      </xs:sequence>
+      <xs:sequence>
+        <xs:element name="NamingStrategy" type="cfg:NamingStrategyName" />
+        <xs:element name="ColorStrategy" type="cfg:ColorStrategyName" />
+      </xs:sequence>
+      <xs:element name="CombinedStrategy" type="cfg:CombinedStrategyName" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:simpleType name="ColorStrategyName">
+    <xs:union memberTypes="cfg:ColorOnlyStrategyName cfg:CombinedStrategyName" />
+  </xs:simpleType>
+
+  <xs:simpleType name="NamingStrategyName">
+    <xs:union memberTypes="cfg:NamingOnlyStrategyName cfg:CombinedStrategyName" />
+  </xs:simpleType>
+
+  <xs:simpleType name="CombinedStrategyName">
+    <xs:restriction base="string">
+      <xs:enumeration value="NamedColors" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ColorOnlyStrategyName">
+    <xs:restriction base="string">
+      <xs:enumeration value="RandomHue" />
+      <xs:enumeration value="RandomColor" />
+      <xs:enumeration value="CategorisedColor" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="NamingOnlyStrategyName">
+    <xs:restriction base="string">
+      <xs:enumeration value="None" />
+      <xs:enumeration value="Districts" />
+      <xs:enumeration value="London" />
+      <xs:enumeration value="Roads" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
