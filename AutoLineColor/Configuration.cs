@@ -148,7 +148,8 @@ namespace AutoLineColor
             this.UndigestedChanges = true;
 
             //Save to disk
-            using (var writer = XmlWriter.Create(Constants.ConfigFileName))
+            var settings = new XmlWriterSettings { Indent = true };
+            using (var writer = XmlWriter.Create(Constants.ConfigFileName, settings))
             {
                 serializer.Serialize(writer, this);
             }
