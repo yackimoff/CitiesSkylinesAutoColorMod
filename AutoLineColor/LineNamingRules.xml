@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Strategies>
+  <NamingStrategy Id="_TrainsByDistrict">
+    <Slots>
+      <Chunk Id="lineSuffix">
+        <Switch>
+          <Case DistrictCount="1,2" HasNonDistrictStop="True">
+            <Cosmetic>Shuttle</Cosmetic>
+          </Case>
+          <Case DistrictCount="1">
+            <Random>
+              <Cosmetic>Limited</Cosmetic>
+              <Cosmetic>Service</Cosmetic>
+              <Cosmetic>Shuttle</Cosmetic>
+            </Random>
+          </Case>
+          <Case DistrictCount="2">
+            <Random>
+              <Cosmetic>Zephyr</Cosmetic>
+              <Cosmetic>Flyer</Cosmetic>
+              <Blank/>
+            </Random>
+          </Case>
+          <Default>
+            <Cosmetic>Unlimited</Cosmetic>
+          </Default>
+        </Switch>
+      </Chunk>
+      <Chunk Id="districtNames">
+        <CollapsingList Preserve="Endpoints" Separator="&amp;" Spacing="Optional">
+          <Districts Order="Encountered" Max="2"/>
+        </CollapsingList>
+      </Chunk>
+    </Slots>
+    <LineNumber>
+      <Template>#$(@lineId)</Template>
+    </LineNumber>
+    <Rules>
+      <Template>$(districtNames) $(lineSuffix)</Template>
+      <Template>$(lineSuffix)</Template>
+    </Rules>
+  </NamingStrategy>
+
+  <NamingStrategy Id="_BusesByDistrict">
+    <Slots>
+      <Chunk Id="lineSuffix">
+        <Switch>
+          <Case DistrictCount="1">
+            <Cosmetic>Local</Cosmetic>
+          </Case>
+          <Case DistrictCount="2" StopCount="1..4">
+            <Cosmetic>Express</Cosmetic>
+          </Case>
+          <Default>
+            <Cosmetic>Line</Cosmetic>
+          </Default>
+        </Switch>
+      </Chunk>
+      <Chunk Id="districtNames">
+        <CollapsingList Preserve="Endpoints" Separator="&amp;" Spacing="Optional">
+          <Districts Order="Encountered" Max="2"/>
+        </CollapsingList>
+      </Chunk>
+    </Slots>
+    <LineNumber>
+      <Template>#$(@lineId)</Template>
+    </LineNumber>
+    <Rules>
+      <Template>$(districtNames) $(lineSuffix)</Template>
+      <Template>$(lineSuffix)</Template>
+    </Rules>
+  </NamingStrategy>
+
+  <NamingStrategy Id="Districts">
+    <Dispatch>
+      <Service Type="Bus,Metro,Tram" NamingStrategy="BusesByDistrict"/>
+      <Service Type="Train,Monorail" NamingStrategy="TrainsByDistrict"/>
+    </Dispatch>
+  </NamingStrategy>
+
+  <NamingStrategy Id="Roads">
+    <Title>Roads</Title>
+    <Description>Names lines after the road names traveled on, the districts traveled through, or both.</Description>
+    <Author>TaradinoC</Author>
+    <Version>1</Version>
+    <Slots>
+      <Chunk Id="districtBasedName">
+        <CollapsingList Preserve="Endpoints">
+          <Districts Order="Encountered" Suffixes="Last"/>
+        </CollapsingList>
+      </Chunk>
+      <Chunk Id="roadBasedName">
+        <CollapsingList Preserve="First">
+          <Roads Combine="True" Order="Coverage" Suffixes="Last" MaxCoverage="50%"/>
+        </CollapsingList>
+      </Chunk>
+      <Chunk Id="lineSuffix">
+        <Cosmetic>Line</Cosmetic>
+      </Chunk>
+    </Slots>
+    <LineNumber>
+      <Template>#$(@lineId)</Template>
+    </LineNumber>
+    <Rules Accept="First">
+      <Template>$(districtBasedName) via $(roadBasedName)</Template>
+      <Template>$(roadBasedName) $(lineSuffix)</Template>
+      <Template>$(districtBasedName)</Template>
+    </Rules>
+  </NamingStrategy>
+</Strategies>
