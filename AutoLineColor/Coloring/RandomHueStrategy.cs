@@ -1,26 +1,15 @@
-using UnityEngine;
-
 namespace AutoLineColor.Coloring
 {
-    internal class RandomHueStrategy : IColorStrategy
+    public sealed class RandomHueStrategy : ColorStrategyBase
     {
-        public Color32 GetColor(in TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
+        protected override IColorSetProvider GetColorSetProvider()
         {
-            // TODO: color families for more line types
-            // TODO: configurable per line type
+            return ColorSetProvider.RandomHue;
+        }
 
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (transportLine.Info.m_transportType)
-            {
-                case TransportInfo.TransportType.Bus:
-                    return RandomColor.GetColor(ColorFamily.Blue, usedColors);
-                case TransportInfo.TransportType.Metro:
-                    return RandomColor.GetColor(ColorFamily.Green, usedColors);
-                case TransportInfo.TransportType.Train:
-                    return RandomColor.GetColor(ColorFamily.Orange, usedColors);
-                default:
-                    return RandomColor.GetColor(ColorFamily.Any, usedColors);
-            }
+        protected override IColorSelector GetColorSelector()
+        {
+            return ColorSelector.DifferenceThreshold;
         }
     }
 }

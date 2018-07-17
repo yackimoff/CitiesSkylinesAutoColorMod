@@ -6,7 +6,6 @@ using ColossalFramework;
 using ICities;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 
 namespace AutoLineColor
@@ -20,7 +19,7 @@ namespace AutoLineColor
         private bool _initialized;
         private IColorStrategy _colorStrategy;
         private INamingStrategy _namingStrategy;
-        private List<Color32> _usedColors;
+        private IUsedColors _usedColors;
         private Configuration _config;
 
         [CanBeNull]
@@ -31,15 +30,13 @@ namespace AutoLineColor
             Logger.Message("===============================");
             Logger.Message("Initializing auto color monitor");
             Logger.Message("Initializing colors");
-            RandomColor.Initialize();
-            CategorisedColor.Initialize();
             GenericNames.Initialize();
 
             Logger.Message("Loading current config");
             _config = Configuration.Instance;
             _colorStrategy = SetColorStrategy(_config.ColorStrategy);
             _namingStrategy = SetNamingStrategy(_config.NamingStrategy);
-            _usedColors = new List<Color32>();
+            _usedColors = new NullUsedColors();
 
             Logger.Message("Found color strategy of " + _config.ColorStrategy);
             Logger.Message("Found naming strategy of " + _config.NamingStrategy);
@@ -147,7 +144,7 @@ namespace AutoLineColor
                 if (!locked)
                     return;
 
-                _usedColors = lines.Where(l => l.IsActive()).Select(l => l.m_color).ToList();
+                _usedColors = UsedColors.FromLines(lines);
 
                 for (ushort i = 0; i < lines.Length - 1; i++)
                 {
@@ -266,11 +263,6 @@ namespace AutoLineColor
         //           color.IsColorEqual(DefaultTrainColor);
         //}
 
-        public static bool IsColorEqual(this Color32 color1, Color32 color2)
-        {
-            return color1.r == color2.r && color1.g == color2.g && color1.b == color2.b && color1.a == color2.a;
-        }
-
         public static bool IsActive(in this TransportLine transportLine)
         {
             if ((transportLine.m_flags & (TransportLine.Flags.Created | TransportLine.Flags.Hidden)) == 0)
@@ -310,6 +302,60 @@ namespace AutoLineColor
             {
                 accumulator = updater(accumulator, item);
                 yield return resultSelector(item, accumulator);
+            }
+        }
+
+        public static TItem MinBy<TItem, TKey>([NotNull] this IEnumerable<TItem> source, [NotNull] Func<TItem, TKey> selector)
+            where TKey : IComparable<TKey>
+        {
+            using (var enumerator = source.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                    throw new ArgumentException("Sequence is empty", nameof(source));
+
+                var best = enumerator.Current;
+                var bestScore = selector(best);
+
+                while (enumerator.MoveNext())
+                {
+                    var next = enumerator.Current;
+                    var nextScore = selector(next);
+
+                    if (nextScore.CompareTo(bestScore) >= 0)
+                        continue;
+
+                    best = next;
+                    bestScore = nextScore;
+                }
+
+                return best;
+            }
+        }
+
+        public static TItem MaxBy<TItem, TKey>([NotNull] this IEnumerable<TItem> source, [NotNull] Func<TItem, TKey> selector)
+            where TKey : IComparable<TKey>
+        {
+            using (var enumerator = source.GetEnumerator())
+            {
+                if (!enumerator.MoveNext())
+                    throw new ArgumentException("Sequence is empty", nameof(source));
+
+                var best = enumerator.Current;
+                var bestScore = selector(best);
+
+                while (enumerator.MoveNext())
+                {
+                    var next = enumerator.Current;
+                    var nextScore = selector(next);
+
+                    if (nextScore.CompareTo(bestScore) <= 0)
+                        continue;
+
+                    best = next;
+                    bestScore = nextScore;
+                }
+
+                return best;
             }
         }
     }
