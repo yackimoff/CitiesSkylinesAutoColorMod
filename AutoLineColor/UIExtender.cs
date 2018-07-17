@@ -53,11 +53,11 @@ namespace AutoLineColor
 
             _refreshBtn = buttonPanel.Find<UIButton>("RefreshNameAndColor");
 
-            if (_refreshBtn == null)
-            {
-                _refreshBtn = buttonPanel.AddUIComponent<UIButton>();
-                _refreshBtn.name = "RefreshNameAndColor";
-            }
+            if (_refreshBtn != null)
+                buttonPanel.RemoveUIComponent(_refreshBtn);
+
+            _refreshBtn = buttonPanel.AddUIComponent<UIButton>();
+            _refreshBtn.name = "RefreshNameAndColor";
 
             _refreshBtn.text = "Refresh Name/Color";
             _refreshBtn.tooltip = "Reassign the line name and color according to current AutoLineColor Redux settings.";
