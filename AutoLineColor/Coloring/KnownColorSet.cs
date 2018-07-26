@@ -79,7 +79,8 @@
         public static IColorSetLoader Named { get; } = new NamedColorSetLoader(
             "Named",
             "named.txt",
-            "#ff0000 Red, #00ff00 Green, #0000ff Blue, #ffff00 Yellow, #ff00ff Fuchsia, #00ffff Cyan,"+
-            " #ffffff White, #888888 Gray, #010101 Black");
+            "#00A550 Green, #0050A7 Blue, #EA1C23 Red, #FF6319 Orange, #FCCC0A Yellow, #27C0E8 Sky," +
+            " #9A9C9D Silver, #63319F Purple, #62361B Brown, #254A00 Forest, #FFB2B9 Pink," +
+            " #891E40 Plum, #68862D Olive, #F86758 Salmon, #646569 Gray, #80BD4A Mint");
     }
 }
