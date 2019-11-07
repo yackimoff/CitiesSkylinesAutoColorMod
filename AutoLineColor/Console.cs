@@ -48,9 +48,9 @@ namespace AutoLineColor
             return formatted;
         }
 
-        public void SetDebug(bool should_debug)
+        public void SetDebug(bool shouldDebug)
         {
-            Debug = should_debug;
+            Debug = shouldDebug;
         }
 
         public void Message(string p)
@@ -69,15 +69,15 @@ namespace AutoLineColor
             this.WriteMessage(p, PluginManager.MessageType.Error);
         }
 
-        private void WriteMessage(string p, PluginManager.MessageType Type)
+        private void WriteMessage(string p, PluginManager.MessageType type)
         {
             if (!this.Debug)
             {
                 return;
             }
 
-            var msg = FormatMessage(p, Type);
-            DebugOutputPanel.AddMessage(Type, msg);
+            var msg = FormatMessage(p, type);
+            DebugOutputPanel.AddMessage(type, msg);
             if (_logOpened)
             {
                 _log.WriteLine(msg);
@@ -85,7 +85,7 @@ namespace AutoLineColor
             }
 
             //Unity engine logger
-            switch (Type)
+            switch (type)
             {
                 case PluginManager.MessageType.Error:
                     UnityEngine.Debug.LogError(msg);

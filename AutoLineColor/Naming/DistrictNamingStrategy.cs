@@ -6,7 +6,7 @@ namespace AutoLineColor.Naming
     {
         // todo could this be localized?
 
-        protected override string GetTrainLineName(TransportLine transportLine)
+        protected override string GetTrainLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             var lineNumber = transportLine.m_lineNumber;
@@ -51,7 +51,7 @@ namespace AutoLineColor.Naming
             }
         }
 
-        protected override string GetBusLineName(TransportLine transportLine)
+        protected override string GetBusLineName(in TransportLine transportLine)
         {
             var analysis = AnalyzeLine(transportLine);
             var lineNumber = transportLine.m_lineNumber;
@@ -74,12 +74,12 @@ namespace AutoLineColor.Naming
             }
         }
 
-        protected override string GetMetroLineName(TransportLine transportLine)
+        protected override string GetMetroLineName(in TransportLine transportLine)
         {
             return GetBusLineName(transportLine);
         }
 
-        protected override string GetGenericLineName(TransportLine transportLine)
+        protected override string GetGenericLineName(in TransportLine transportLine)
         {
             return $"#{transportLine.m_lineNumber} Line";
         }

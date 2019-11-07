@@ -51,7 +51,7 @@ namespace AutoLineColor.Naming
             Predicate<string> variantPredicate,
             Predicate<string> shorteningPredicate)
         {
-            var logger = Console.Instance;
+            //var logger = Console.Instance;
 
             foreach (var v in chunk.GetThisAndVariants())
             {
@@ -59,7 +59,7 @@ namespace AutoLineColor.Naming
                 {
                     var vs = v.ToString();
 
-                    logger.Message($"VaryAndShortenToFit: check variant '{vs}'");
+                    //logger.Message($"VaryAndShortenToFit: check variant '{vs}'");
 
                     if (!variantPredicate(vs))
                         continue;
@@ -67,14 +67,14 @@ namespace AutoLineColor.Naming
 
                 foreach (var s in v.GetThisAndShortenings())
                 {
-                    logger.Message($"VaryAndShortenToFit: check shortening '{s}'");
+                    //logger.Message($"VaryAndShortenToFit: check shortening '{s}'");
 
                     if (shorteningPredicate == null || shorteningPredicate(s))
                         return s;
                 }
             }
 
-            logger.Message("VaryAndShortenToFit: gave up");
+            //logger.Message("VaryAndShortenToFit: gave up");
 
             return null;
         }
@@ -345,7 +345,7 @@ namespace AutoLineColor.Naming
             int dropEarly = 1, dropLate = mid + 1;
             var early = true;
 
-            logger.Message($"decaying (endpoints): {remaining} items to start");
+            //logger.Message($"decaying (endpoints): {remaining} items to start");
 
             while (true)
             {
@@ -360,26 +360,26 @@ namespace AutoLineColor.Naming
 
                 if (canDropEarly && (early || !canDropLate))
                 {
-                    logger.Message($"early: dropping item {dropEarly}");
+                    //logger.Message($"early: dropping item {dropEarly}");
                     temp[dropEarly] = null;
                     dropEarly++;
                     early = false;
                 }
                 else if (canDropLate)
                 {
-                    logger.Message($"late: dropping item {dropLate}");
+                    //logger.Message($"late: dropping item {dropLate}");
                     temp[dropLate] = null;
                     dropLate++;
                     early = true;
                 }
                 else if (mid != 0 && mid != last && temp[mid] != null)
                 {
-                    logger.Message($"mid: dropping item {mid}");
+                    //logger.Message($"mid: dropping item {mid}");
                     temp[mid] = null;
                 }
                 else if (temp[0] != null)
                 {
-                    logger.Message("first: dropping item 0");
+                    //logger.Message("first: dropping item 0");
                     temp[0] = null;
                 }
                 else
@@ -411,7 +411,7 @@ namespace AutoLineColor.Naming
 
             var remaining = temp.Length;
 
-            logger.Message($"decaying (priority): {remaining} items to start");
+            //logger.Message($"decaying (priority): {remaining} items to start");
 
             while (true)
             {
@@ -423,7 +423,7 @@ namespace AutoLineColor.Naming
                     yield break;
                 }
 
-                logger.Message($"decaying: returning first {remaining} items");
+                //logger.Message($"decaying: returning first {remaining} items");
 
                 var result = new IChunk[remaining];
                 Array.Copy(temp, result, remaining);

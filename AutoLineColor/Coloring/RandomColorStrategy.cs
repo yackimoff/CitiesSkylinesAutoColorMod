@@ -1,12 +1,15 @@
-using UnityEngine;
-
 namespace AutoLineColor.Coloring
 {
-    public class RandomColorStrategy : IColorStrategy
+    public sealed class RandomColorStrategy : ColorStrategyBase
     {
-        public Color32 GetColor(TransportLine transportLine, System.Collections.Generic.List<Color32> usedColors)
+        protected override IColorSetProvider GetColorSetProvider()
         {
-            return RandomColor.GetColor(ColorFamily.Any, usedColors);
+            return ColorSetProvider.Random;
+        }
+
+        protected override IColorSelector GetColorSelector()
+        {
+            return ColorSelector.DifferenceThreshold;
         }
     }
 }
