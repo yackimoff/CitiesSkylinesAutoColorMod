@@ -26,6 +26,7 @@ namespace AutoLineColor
             String[] ColorStrategies = Enum.GetNames(typeof(ColorStrategy));
             String[] NamingStrategies = Enum.GetNames(typeof(NamingStrategy));
             UIHelperBase group = helper.AddGroup(Constants.ModName);
+            
             group.AddDropdown("Color Strategy", ColorStrategies, (int)Config.ColorStrategy, Config.ColorStrategyChange);
             group.AddDropdown("Naming Strategy", NamingStrategies, (int)Config.NamingStrategy, Config.NamingStrategyChange);
             group.AddSpace(5);
